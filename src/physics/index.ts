@@ -26,3 +26,21 @@ export { Electromagnetism, ElectricFieldResult, MagneticFieldResult, CircuitResu
 
 // Thermodynamics
 export { Thermodynamics, ThermalProperties, HeatTransferResult, ConvectionResult, RadiationResult, ThermodynamicState, CycleResult, HeatExchangerResult } from './thermodynamics';
+
+// Numerical methods
+export { NumericalMethods, ODEResult, RootResult, IntegrationResult, InterpolationResult, LinearSystemResult, SplineCoefficients } from './numerical';
+
+// Optimization
+export { ParticleSwarmOptimizer, PhysicsOptimization, Particle as SwarmParticle, PSOConfig, PSOResult, MOPSOResult, ConstrainedResult } from './optimizer';
+
+// Advanced orbital mechanics
+export { OrbitalMechanics, CelestialBody, OrbitalElements as AdvancedOrbitalElements, ManeuverResult, LambertSolution, LagrangePoints, NBodyState, SOLAR_SYSTEM } from './orbital';
+
+// Nuclear and particle physics
+export { NuclearPhysics, ParticleData, NuclideData, DecayMode, DecayResult, CrossSectionResult, ReactionResult, ComptonResult, PARTICLES, NUCLIDES } from './nuclear';
+
+// Statistical mechanics
+export { StatisticalMechanics, EnsembleProperties, DistributionResult, IsingState, PhaseTransitionResult, FluctuationResult } from './statistical';
+
+// Simulation orchestrator
+export { SimulationOrchestrator, SimulationConfig, SimulationResult, ScenarioResult } from './orchestrator';
