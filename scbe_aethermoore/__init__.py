@@ -32,7 +32,18 @@ from .physics import (
     oracle_shift,
     entropy_export,
 )
+from .manifold import (
+    ManifoldLabel,
+    TorusParams,
+    ManifoldThresholds,
+    ManifoldResult,
+    classify_manifold,
+    sign_manifold_result,
+    determine_tier,
+    gate_scbe_context,
+    TierPolicy,
+)
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Isaac Davis"
 __doc_id__ = "SCBE-AETHER-UNIFIED-2026-001"
