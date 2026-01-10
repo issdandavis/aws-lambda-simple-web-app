@@ -64,6 +64,317 @@ class TimeDilationConfig:
     r_0: float = 0.5          # Radius threshold for PoW
 
 
+# =============================================================================
+# CONCENTRIC RING SYSTEM
+# =============================================================================
+
+@dataclass
+class RingConfig:
+    """Configuration for a single concentric ring."""
+    name: str                 # Ring identifier
+    inner_radius: float       # Inner boundary (normalized 0-1)
+    outer_radius: float       # Outer boundary (normalized 0-1)
+    trust_level: float        # Base trust level for this ring
+    latency_multiplier: float # Time dilation multiplier
+    pow_bits_add: int         # Additional PoW bits for this ring
+    requires_attestation: bool  # Whether ring requires extra attestation
+
+
+@dataclass
+class ConcentricRingSystem:
+    """
+    Multi-ring trust topology for graduated security.
+
+    Rings are ordered from innermost (highest trust) to outermost (lowest trust):
+    - Ring 0: Core - Highest trust, minimal latency
+    - Ring 1: Trusted - High trust, low latency
+    - Ring 2: Verified - Medium trust, moderate latency
+    - Ring 3: Boundary - Low trust, high latency
+    - Ring 4+: Exterior - Untrusted, maximum scrutiny
+    """
+    rings: List[RingConfig] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not self.rings:
+            # Default 5-ring system
+            self.rings = [
+                RingConfig(
+                    name="core",
+                    inner_radius=0.0,
+                    outer_radius=0.1,
+                    trust_level=1.0,
+                    latency_multiplier=0.1,
+                    pow_bits_add=0,
+                    requires_attestation=False
+                ),
+                RingConfig(
+                    name="trusted",
+                    inner_radius=0.1,
+                    outer_radius=0.3,
+                    trust_level=0.85,
+                    latency_multiplier=0.3,
+                    pow_bits_add=0,
+                    requires_attestation=False
+                ),
+                RingConfig(
+                    name="verified",
+                    inner_radius=0.3,
+                    outer_radius=0.5,
+                    trust_level=0.65,
+                    latency_multiplier=0.6,
+                    pow_bits_add=1,
+                    requires_attestation=True
+                ),
+                RingConfig(
+                    name="boundary",
+                    inner_radius=0.5,
+                    outer_radius=0.8,
+                    trust_level=0.4,
+                    latency_multiplier=1.0,
+                    pow_bits_add=3,
+                    requires_attestation=True
+                ),
+                RingConfig(
+                    name="exterior",
+                    inner_radius=0.8,
+                    outer_radius=1.0,
+                    trust_level=0.15,
+                    latency_multiplier=2.0,
+                    pow_bits_add=6,
+                    requires_attestation=True
+                ),
+            ]
+
+    def get_ring_count(self) -> int:
+        """Return number of rings."""
+        return len(self.rings)
+
+    def get_ring(self, index: int) -> Optional[RingConfig]:
+        """Get ring by index."""
+        if 0 <= index < len(self.rings):
+            return self.rings[index]
+        return None
+
+    def find_ring_by_radius(self, radius: float) -> Tuple[int, RingConfig]:
+        """
+        Find which ring contains the given radius.
+
+        Args:
+            radius: Normalized radius (0 = center, 1 = edge)
+
+        Returns:
+            Tuple of (ring_index, ring_config)
+        """
+        radius = np.clip(radius, 0.0, 1.0)
+
+        for i, ring in enumerate(self.rings):
+            if ring.inner_radius <= radius < ring.outer_radius:
+                return (i, ring)
+
+        # Default to outermost ring
+        return (len(self.rings) - 1, self.rings[-1])
+
+
+@dataclass
+class RingMembership:
+    """Result of ring classification."""
+    ring_index: int
+    ring_name: str
+    radial_distance: float      # Distance from center (0-1)
+    angular_position: float     # Angular position (radians)
+    trust_level: float          # Effective trust for this ring
+    depth_in_ring: float        # How deep into the ring (0=inner edge, 1=outer edge)
+    is_transition_zone: bool    # Near ring boundary?
+
+
+def compute_radial_distance(u: np.ndarray, center: Optional[np.ndarray] = None) -> float:
+    """
+    Compute normalized radial distance from center.
+
+    For unit sphere, distance is based on angular displacement from reference point.
+
+    Args:
+        u: Point on unit sphere
+        center: Reference center point (default: north pole)
+
+    Returns:
+        Normalized distance in [0, 1]
+    """
+    if center is None:
+        # Default center is north pole
+        center = np.zeros_like(u)
+        center[0] = 1.0
+
+    # Cosine of angle between u and center
+    cos_angle = np.clip(np.dot(u, center), -1.0, 1.0)
+
+    # Convert to normalized distance (1 = opposite pole, 0 = same point)
+    angle = math.acos(cos_angle)
+    distance = angle / math.pi  # Normalize to [0, 1]
+
+    return distance
+
+
+def classify_ring(
+    u: np.ndarray,
+    ring_system: ConcentricRingSystem,
+    center: Optional[np.ndarray] = None,
+    transition_margin: float = 0.05
+) -> RingMembership:
+    """
+    Classify which concentric ring a point belongs to.
+
+    Args:
+        u: Point on unit sphere
+        ring_system: Ring configuration
+        center: Reference center point
+        transition_margin: Margin for transition zone detection
+
+    Returns:
+        RingMembership with classification details
+    """
+    # Compute radial distance
+    radial = compute_radial_distance(u, center)
+
+    # Find containing ring
+    ring_idx, ring = ring_system.find_ring_by_radius(radial)
+
+    # Compute depth within ring
+    ring_width = ring.outer_radius - ring.inner_radius
+    if ring_width > 0:
+        depth = (radial - ring.inner_radius) / ring_width
+    else:
+        depth = 0.5
+
+    # Check if in transition zone
+    is_transition = (
+        depth < transition_margin or
+        depth > (1.0 - transition_margin)
+    )
+
+    # Compute angular position (first angle)
+    angles = sphere_to_angles(u)
+    angular_pos = angles[0] if angles else 0.0
+
+    return RingMembership(
+        ring_index=ring_idx,
+        ring_name=ring.name,
+        radial_distance=radial,
+        angular_position=angular_pos,
+        trust_level=ring.trust_level,
+        depth_in_ring=depth,
+        is_transition_zone=is_transition
+    )
+
+
+def compute_ring_time_dilation(
+    ring_membership: RingMembership,
+    ring_system: ConcentricRingSystem,
+    base_config: TimeDilationConfig
+) -> Tuple[float, int]:
+    """
+    Compute time dilation based on ring membership.
+
+    Inner rings = faster (lower latency)
+    Outer rings = slower (higher latency, more PoW)
+
+    Args:
+        ring_membership: Ring classification result
+        ring_system: Ring system configuration
+        base_config: Base time dilation config
+
+    Returns:
+        Tuple of (latency_ms, pow_bits)
+    """
+    ring = ring_system.get_ring(ring_membership.ring_index)
+    if ring is None:
+        # Fallback to maximum security
+        return (base_config.tau_0 * 10, base_config.pow_0 + 10)
+
+    # Base latency with ring multiplier
+    latency = base_config.tau_0 * ring.latency_multiplier
+
+    # Adjust for depth in ring (deeper = slightly slower)
+    depth_factor = 1.0 + (ring_membership.depth_in_ring * 0.3)
+    latency *= depth_factor
+
+    # Extra slowdown in transition zones
+    if ring_membership.is_transition_zone:
+        latency *= 1.5
+
+    # PoW bits
+    pow_bits = base_config.pow_0 + ring.pow_bits_add
+
+    # Additional PoW in transition zones
+    if ring_membership.is_transition_zone:
+        pow_bits += 1
+
+    return (latency, pow_bits)
+
+
+def visualize_rings(
+    ring_membership: RingMembership,
+    ring_system: ConcentricRingSystem,
+    show_all: bool = True
+) -> str:
+    """
+    Generate ASCII visualization of ring system.
+
+    Args:
+        ring_membership: Current ring membership
+        ring_system: Ring configuration
+        show_all: Show all rings or just current
+
+    Returns:
+        ASCII art visualization
+    """
+    lines = []
+    lines.append("┌────────────────────────────────────────────────────┐")
+    lines.append("│           CONCENTRIC RING TRUST TOPOLOGY           │")
+    lines.append("├────────────────────────────────────────────────────┤")
+
+    # Draw concentric circles (simplified ASCII)
+    ring_chars = ['◉', '◎', '○', '◌', '·']
+
+    # Header for ring status
+    for i, ring in enumerate(ring_system.rings):
+        is_current = (i == ring_membership.ring_index)
+        marker = "▶" if is_current else " "
+        char = ring_chars[min(i, len(ring_chars)-1)]
+        status = "★ CURRENT" if is_current else ""
+        lines.append(
+            f"│ {marker} Ring {i} [{char}] {ring.name:10s} "
+            f"r=[{ring.inner_radius:.1f}-{ring.outer_radius:.1f}] "
+            f"trust={ring.trust_level:.2f} {status:10s}│"
+        )
+
+    lines.append("├────────────────────────────────────────────────────┤")
+
+    # Visual representation
+    lines.append("│                                                    │")
+    lines.append("│              ┌─────────────────────┐               │")
+    lines.append("│            ┌─┤   ┌───────────┐     ├─┐             │")
+    lines.append("│          ┌─┤ │ ┌─┤  ┌─────┐  ├─┐ │ ├─┐           │")
+    lines.append("│        ┌─┤ │ │ │ │┌─┤ ◉◉◉ ├─┐│ │ │ │ ├─┐         │")
+    lines.append("│        │ │ │ │ │ ││ │CORE │ ││ │ │ │ │ │         │")
+    lines.append("│        └─┤ │ │ │ │└─┤     ├─┘│ │ │ │ ├─┘         │")
+    lines.append("│          └─┤ │ └─┤  └─────┘  ├─┘ │ ├─┘           │")
+    lines.append("│            └─┤   └───────────┘     ├─┘             │")
+    lines.append("│              └─────────────────────┘               │")
+    lines.append("│                    EXTERIOR                        │")
+    lines.append("│                                                    │")
+
+    lines.append("├────────────────────────────────────────────────────┤")
+    lines.append(f"│ Current: Ring {ring_membership.ring_index} ({ring_membership.ring_name})       │")
+    lines.append(f"│ Radial distance: {ring_membership.radial_distance:.4f}                        │")
+    lines.append(f"│ Depth in ring: {ring_membership.depth_in_ring:.4f}                          │")
+    lines.append(f"│ Trust level: {ring_membership.trust_level:.4f}                            │")
+    lines.append(f"│ Transition zone: {'YES' if ring_membership.is_transition_zone else 'NO':3s}                             │")
+    lines.append("└────────────────────────────────────────────────────┘")
+
+    return "\n".join(lines)
+
+
 @dataclass
 class GeoSealConfig:
     """Complete GeoSeal configuration."""
@@ -71,7 +382,9 @@ class GeoSealConfig:
     cube: CubeConfig = field(default_factory=CubeConfig)
     potential: PotentialConfig = field(default_factory=PotentialConfig)
     time_dilation: TimeDilationConfig = field(default_factory=TimeDilationConfig)
+    ring_system: ConcentricRingSystem = field(default_factory=ConcentricRingSystem)
     margin_epsilon: float = 0.1  # Margin for interior classification
+    enable_rings: bool = True    # Enable concentric ring processing
 
 
 # =============================================================================
@@ -545,6 +858,56 @@ def derive_region_keys(
         "K_sphere": K_sphere,
         "K_cube": K_cube,
         "K_msg": K_msg
+    }
+
+
+def derive_ring_keys(
+    shared_secret: bytes,
+    ring_membership: RingMembership,
+    membership: CellMembership,
+    path: PathType
+) -> Dict[str, bytes]:
+    """
+    Derive ring-specific keys.
+
+    Each ring has its own key derivation context, preventing
+    keys from one ring from working in another.
+
+    Args:
+        shared_secret: Base shared secret
+        ring_membership: Ring classification
+        membership: Cell membership
+        path: Path type
+
+    Returns:
+        Dict of derived keys including ring-specific keys
+    """
+    # First derive base keys
+    base_keys = derive_region_keys(shared_secret, membership, path)
+
+    # Ring-specific salt
+    ring_salt = f"ring:{ring_membership.ring_name}|{ring_membership.ring_index}".encode()
+
+    # Derive ring key
+    K_ring = hkdf(
+        base_keys["K_msg"],
+        ring_salt,
+        f"geo:ring|{ring_membership.radial_distance:.6f}".encode()
+    )
+
+    # Re-derive message key with ring binding
+    K_msg_ring = hkdf(
+        bytes(a ^ b for a, b in zip(base_keys["K_msg"], K_ring)),
+        b"geoseal",
+        f"geo:msg:ring|{path.value}|{ring_membership.ring_name}".encode()
+    )
+
+    return {
+        **base_keys,
+        "K_ring": K_ring,
+        "K_msg_ring": K_msg_ring,
+        "ring_index": ring_membership.ring_index.to_bytes(4, 'little'),
+        "ring_name": ring_membership.ring_name.encode()
     }
 
 
