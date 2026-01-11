@@ -5,6 +5,7 @@ gravity_intent_validation.json
 scbe_box_test_results.json
 attack_sink_data.json
 multi_state_test_results.json
+dimensional_simulation_results.json
 attack_cost_curve.png
 sink_depth.png
 ray_patterns.png

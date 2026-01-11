@@ -48,8 +48,9 @@ python gravity_intent_evolution.py
 | `quasicrystal_auth.py` | 25 | Icosahedral geometry authentication | ~0.5s |
 | `gravity_intent_evolution.py` | 18 | N-body intent simulation | ~1.2s |
 | `multi_state_spin_encoding.py` | 7 | Base-6 spin modulation & quark strands | ~0.1s |
+| `dimensional_theory_simulation.py` | 6 | Traditional vs SCBE vs Future comparison | ~2.0s |
 
-**Total: 165 tests in ~2.5 seconds**
+**Total: 171 tests in ~4.5 seconds**
 
 ---
 
@@ -149,6 +150,27 @@ python multi_state_spin_encoding.py
 - Entropy: 2.58 bits/symbol (vs 1.0 binary)
 - State space: 3.49e+9x larger than binary
 - With spin: ~222 bits per 20-symbol strand
+
+### 7. Dimensional Theory Simulation
+
+```bash
+python dimensional_theory_simulation.py
+```
+
+**Tests Include:**
+- Traditional (Euclidean 3D) vs SCBE (6D) vs Future (Hyperbolic 20D)
+- Quantum control theory integration (Lindblad evolution)
+- Inhospitable zone sink with gravitational dilation
+- Tiered attack complexity simulation
+- Scientific data output (NASA-like)
+
+**System Comparison:**
+
+| System | Dims | Avg Cost (bits) | Trap Rate |
+|--------|------|-----------------|-----------|
+| Traditional | 3 | 4.4 | 0% |
+| SCBE | 6 | 57.7 | 50% |
+| Future | 20 | 215.2 | 100% |
 
 ---
 
