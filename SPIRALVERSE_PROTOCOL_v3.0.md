@@ -30,32 +30,95 @@ This report details the implementation of **SCBE-AETHERMOORE**, a dual-lattice p
 
 ## 3. Core Architecture: The GeoSeal Kernel
 
-The system's heart is **GeoSeal**, a mechanism that treats authorization as a geometric intersection problem.
+The system's heart is **GeoSeal**, a key-scheduling mechanism that enforces separation-of-powers through a **deterministic geometric classifier** operating on cryptographic ceremony outputs.
 
-### 3.1. The Dual-Lattice Manifold
+### 3.1. Manifold-Gated Dual-Lane Key Schedule
 
-We utilize a **Hybrid Post-Quantum Cryptography (PQC)** scheme combining Kyber (ML-KEM) for key encapsulation and Dilithium (ML-DSA) for signing.
+We do not claim novel cryptographic primitives. The protocol uses standard **ML-KEM (Kyber)** for key encapsulation and **HKDF** for key derivation. The novelty lies in the *gating process* that selects between two derivation lanes.
 
-- **The Sphere (S²):** Represents the "Inner State" of the AI (Cognition).
-- **The Hypercube ([0,1]^m):** Represents the "Outer State" of Governance (Rules).
+#### 3.1.1. Protocol Flow
 
-**The Mechanism:** Keys are only derived when the agent's vector intersects the "Safe Zone" on both manifolds. This prevents "Brain/Box" decoupling—an agent cannot execute an action (Box) that contradicts its internal logic (Brain).
+```
+1. ENCAPSULATE:  (ct, ss) ← ML-KEM.Encaps(pk)
+2. CLASSIFY:     L ← GeometricClassifier(χ, pk_in, ct_in, pk_out, ct_out)
+3. DERIVE:       k_L ← HKDF(ss, salt=L, info=context)
+```
 
-### 3.2. Intent-Based Pre-Encryption
+Where:
+- `χ` — Agent's current behavioral state vector (computed from recent action log)
+- `pk_in, ct_in` — Public key and ciphertext from the "inside" channel (agent cognition)
+- `pk_out, ct_out` — Public key and ciphertext from the "outside" channel (governance/oversight)
+- `L ∈ {A, B}` — Lane selector bit
 
-Data is not encrypted generically; it is encrypted specifically for a semantic intent.
+#### 3.1.2. The Geometric Classifier
 
-- **The Sacred Tongues:** We utilize a Conlang (Constructed Language) with six distinct domains:
-  - **KO** - Control
-  - **AV** - Creative/Logging
-  - **RU** - Policy
-  - **CA** - [Domain TBD]
-  - **UM** - Security
-  - **DR** - [Domain TBD]
+The classifier is a deterministic function over the 5-tuple `(χ, pk_in, ct_in, pk_out, ct_out)`:
 
-- **Trigger Mechanism:** These tongues act as "Neural Triggers." A payload tagged with RU (Policy) uses a different harmonic frequency than one tagged with KO (Control).
+```
+GeometricClassifier(χ, pk_in, ct_in, pk_out, ct_out) → L ∈ {A, B}
 
-- **Result:** A compromised "Logging" agent (AV) physically cannot decrypt "Command" data (KO), even if it steals the master key, because the Harmonic Intent does not match.
+Step 1: Project χ onto manifold M using fixed basis vectors
+Step 2: Compute commitment C_in = H(pk_in || ct_in)
+Step 3: Compute commitment C_out = H(pk_out || ct_out)
+Step 4: Evaluate decision boundary: L = (⟨χ_proj, C_in ⊕ C_out⟩ > threshold) ? A : B
+```
+
+**Critical Property — Non-Unilateral Forcing:**
+- Lane A (k_A): "Inside" key — used for agent-internal operations (cognition, planning)
+- Lane B (k_B): "Outside" key — used for externally-observable actions (writes, API calls)
+
+No single actor can force the lane selection:
+- The **agent** contributes χ (behavioral state)
+- The **inside ceremony** contributes (pk_in, ct_in)
+- The **outside ceremony** contributes (pk_out, ct_out)
+
+All three inputs are required to compute L. An attacker controlling only one input cannot deterministically force a specific lane outcome.
+
+#### 3.1.3. Separation-of-Powers Semantics
+
+| Lane | Key | Semantic Domain | Access Pattern |
+|------|-----|-----------------|----------------|
+| A | k_A | Agent cognition ("Brain") | Internal state, reasoning traces, draft outputs |
+| B | k_B | Governance oversight ("Box") | Committed actions, audit logs, external effects |
+
+This is not "tagging" — the lane bit L is *computed* from cryptographic ceremony outputs, not *declared* by the sender. The HKDF salt differs based on classifier output, producing cryptographically distinct keys from the same shared secret.
+
+### 3.2. Trajectory-Based Coherence Authorization
+
+Authorization is not a point-in-time decision. The protocol evaluates agent behavior as a **trajectory through state space** over a sliding window.
+
+#### 3.2.1. The 5-Variable Coherence Kernel
+
+At each authorization checkpoint, compute:
+
+```
+K(t) = f(χ(t), χ(t-1), Δχ, σ_drift, r_tube)
+
+Where:
+  χ(t)      — Current state vector
+  χ(t-1)    — Previous state vector
+  Δχ        — First derivative (velocity in state space)
+  σ_drift   — Accumulated drift magnitude over window
+  r_tube    — Permitted radius of trajectory tube
+```
+
+#### 3.2.2. The Tube Test
+
+The agent's trajectory must remain within a "tube" of radius `r_tube` around the expected path:
+
+```
+AUTHORIZE if: σ_drift < r_tube × decay_factor(t)
+DENY if:      σ_drift ≥ r_tube × decay_factor(t)
+```
+
+**Drift Amplification:** Small deviations compound. The kernel tracks cumulative drift, not just instantaneous position. An agent that makes many small "acceptable" deviations will eventually exceed the tube boundary, triggering review.
+
+#### 3.2.3. Computational Characteristics
+
+- **Deterministic:** Same inputs always produce same authorization decision
+- **Stateful:** Requires trajectory history, not just current state
+- **Tunable:** `r_tube` and `decay_factor` are policy parameters set by governance
+- **Composable:** Multiple tubes can be defined for different action classes
 
 ---
 
@@ -155,12 +218,65 @@ The commercial killer app is **Synthetic Data**.
 
 ### 7.2. Patent Claims Summary
 
-| Claim | Description |
-|-------|-------------|
-| **Dual-Lattice Consensus** | Using Kyber/Dilithium on topologically distinct manifolds to enforce separation of powers. |
-| **Corrective Swarm Governance** | The "Loss-Over-Gain" logic for downgrading trust rather than binary banning. |
-| **Physics-Based Trap Ciphers** | Using simulation-logic paradoxes (variable swaps) to authenticate agent runtime environments. |
-| **Geometric Intent Binding** | Using 4D/6D topology to pre-encrypt data based on semantic intent (Tongues). |
+We do not claim novel cryptographic primitives. All claims are **computing processes** that compose standard cryptographic building blocks (ML-KEM, HKDF, hash functions) in novel configurations.
+
+---
+
+#### Claim 1: Manifold-Gated Dual-Lane Key Schedule
+
+**A method for deriving cryptographic keys with separation-of-powers semantics, comprising:**
+
+1. Performing a single key encapsulation operation using ML-KEM to produce a shared secret (ss) and ciphertext (ct)
+
+2. Computing a lane selector bit L by applying a deterministic geometric classifier to a 5-tuple of inputs:
+   - χ: a behavioral state vector derived from the requesting agent's recent action history
+   - pk_in, ct_in: public key and ciphertext from an "inside" cryptographic ceremony
+   - pk_out, ct_out: public key and ciphertext from an "outside" cryptographic ceremony
+
+3. Deriving a lane-specific key k_L by invoking HKDF with the shared secret and the lane selector as distinct salt values
+
+**Wherein:**
+- The geometric classifier projects χ onto a fixed manifold and evaluates a decision boundary against commitments derived from the ceremony outputs
+- The lane selector cannot be unilaterally determined by any single party, as it depends on inputs contributed by the agent (χ), the inside ceremony (pk_in, ct_in), and the outside ceremony (pk_out, ct_out)
+- Lane A keys (k_A) are semantically bound to agent-internal operations; Lane B keys (k_B) are semantically bound to externally-observable actions
+
+**Distinguishing Feature:** The lane selection is *computed* from cryptographic ceremony outputs via geometric classification, not *declared* via metadata tags. This prevents an attacker who controls the shared secret from selecting an arbitrary lane.
+
+---
+
+#### Claim 2: Trajectory-Based Coherence Authorization with Drift Amplification
+
+**A method for authorizing agent actions based on behavioral trajectory analysis, comprising:**
+
+1. Maintaining a sliding window of agent state vectors χ(t), χ(t-1), ..., χ(t-n)
+
+2. At each authorization checkpoint, computing a coherence kernel K(t) as a function of five variables:
+   - χ(t): current state vector
+   - χ(t-1): previous state vector
+   - Δχ: first derivative (rate of state change)
+   - σ_drift: cumulative drift magnitude over the window
+   - r_tube: permitted trajectory radius (policy parameter)
+
+3. Evaluating a tube test: authorizing the action if σ_drift < r_tube × decay_factor(t), denying otherwise
+
+**Wherein:**
+- The drift magnitude σ_drift accumulates over time, such that repeated small deviations compound and eventually trigger denial (drift amplification)
+- The tube radius r_tube and decay factor are governance-controlled policy parameters
+- The authorization decision is deterministic and reproducible given the same trajectory history
+
+**Distinguishing Feature:** Authorization is a function of *trajectory shape* over time, not point-in-time state. The 5-variable kernel captures both instantaneous position and cumulative behavioral drift, preventing "slow walk" attacks where an agent makes many individually-acceptable deviations.
+
+---
+
+### 7.3. Prior Art Differentiation
+
+| Approach | Limitation | Our Differentiation |
+|----------|------------|---------------------|
+| HKDF with context tags | Sender declares tag; attacker can forge | Lane computed from multi-party ceremony outputs |
+| Role-based key derivation | Static role assignment | Lane depends on dynamic behavioral state χ |
+| Threshold signatures | Requires interactive ceremony | Classifier is non-interactive; computed locally |
+| Anomaly detection | Binary allow/deny on current state | Trajectory-based with cumulative drift |
+| Rate limiting | Counts actions, not behavioral coherence | Evaluates state-space trajectory shape |
 
 ---
 
