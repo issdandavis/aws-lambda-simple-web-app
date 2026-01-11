@@ -1867,6 +1867,529 @@ const ManifoldController = {
 };
 
 // ============================================================================
+// Geodesic Watermark - The Shape IS the Authentication
+// "You made it through security, but you're still caught"
+// Even if all crypto passes, the trajectory through the manifold reveals imposters
+// ============================================================================
+
+const GeodesicWatermark = {
+  // The secret key shapes the trajectory - without it, paths look "wrong"
+  // This is not a signature ON the message, the message path IS the signature
+
+  // Thresholds for "bandit detection"
+  thresholds: {
+    curvatureDeviation: 0.15,    // Max deviation from expected curvature profile
+    trajectoryCoherence: 0.85,   // Min coherence score (0-1)
+    zoneTransitionPenalty: 0.3,  // Penalty per unexpected zone transition
+    windingMismatch: 0.5,        // Penalty for wrong winding number
+    temporalJitter: 0.1,         // Max allowable temporal irregularity
+    banditThreshold: 0.6         // Below this = BANDIT DETECTED
+  },
+
+  // Generate the expected "shape" for a message given a secret key
+  // This is the "hyper-shape QR code" - the trajectory fingerprint
+  generateExpectedShape(message, secretKey, options = {}) {
+    const {
+      steps = 8,           // Number of trajectory waypoints
+      includeTimestamp = true
+    } = options;
+
+    // Derive trajectory parameters from secret key
+    const keyHash = crypto.createHash('sha256').update(secretKey).digest();
+    const messageHash = crypto.createHash('sha256').update(message).digest();
+
+    // Combine key and message to get unique trajectory seed
+    const combined = crypto.createHmac('sha256', keyHash).update(messageHash).digest();
+
+    // Generate expected waypoints
+    const waypoints = [];
+    let theta = 0, phi = 0;
+
+    for (let i = 0; i < steps; i++) {
+      // Each step derived from combined hash
+      const stepKey = crypto.createHmac('sha256', combined).update(`step${i}`).digest();
+
+      // Delta angles determined by secret - attacker can't reproduce without key
+      const dTheta = ((stepKey[0] / 255) - 0.5) * Math.PI / 4;  // ±π/8
+      const dPhi = ((stepKey[1] / 255) - 0.5) * Math.PI / 2;    // ±π/4
+
+      theta = (theta + dTheta + 2 * Math.PI) % (2 * Math.PI);
+      phi = (phi + dPhi + 2 * Math.PI) % (2 * Math.PI);
+
+      // Expected curvature at this point
+      const K = TorusGeometry.gaussianCurvature(theta);
+      const zone = ManifoldController.classifySemanticZone(theta);
+
+      waypoints.push({
+        index: i,
+        theta: Math.round(theta * 10000) / 10000,
+        phi: Math.round(phi * 10000) / 10000,
+        expectedCurvature: Math.round(K * 10000) / 10000,
+        zone: zone.semantic,
+        position: TorusGeometry.parametrize(theta, phi)
+      });
+    }
+
+    // Compute trajectory characteristics (the "shape fingerprint")
+    const shapeFingerprint = this.computeShapeFingerprint(waypoints);
+
+    return {
+      waypoints,
+      fingerprint: shapeFingerprint,
+      timestamp: includeTimestamp ? Date.now() : null,
+      messageHash: messageHash.toString('hex').slice(0, 16)
+    };
+  },
+
+  // Compute the "shape fingerprint" - geometric characteristics of the trajectory
+  computeShapeFingerprint(waypoints) {
+    if (waypoints.length < 2) return null;
+
+    // 1. Curvature profile (sequence of curvatures)
+    const curvatures = waypoints.map(w => w.expectedCurvature || TorusGeometry.gaussianCurvature(w.theta));
+
+    // 2. Zone transition sequence
+    const zones = waypoints.map(w => w.zone);
+    const transitions = [];
+    for (let i = 1; i < zones.length; i++) {
+      if (zones[i] !== zones[i-1]) {
+        transitions.push({ from: zones[i-1], to: zones[i], at: i });
+      }
+    }
+
+    // 3. Winding numbers (how many times we wrap around each axis)
+    let thetaWinding = 0, phiWinding = 0;
+    for (let i = 1; i < waypoints.length; i++) {
+      const dTheta = waypoints[i].theta - waypoints[i-1].theta;
+      const dPhi = waypoints[i].phi - waypoints[i-1].phi;
+      if (Math.abs(dTheta) > Math.PI) thetaWinding += Math.sign(dTheta);
+      if (Math.abs(dPhi) > Math.PI) phiWinding += Math.sign(dPhi);
+    }
+
+    // 4. Total geodesic length
+    let totalLength = 0;
+    for (let i = 1; i < waypoints.length; i++) {
+      totalLength += ManifoldController.calculateDivergence(
+        waypoints[i-1].theta, waypoints[i-1].phi,
+        waypoints[i].theta, waypoints[i].phi
+      );
+    }
+
+    // 5. Curvature integral (total "bending")
+    const curvatureIntegral = curvatures.reduce((sum, K) => sum + Math.abs(K), 0);
+
+    // 6. Average curvature sign (security-leaning vs creative-leaning)
+    const avgCurvature = curvatures.reduce((sum, K) => sum + K, 0) / curvatures.length;
+
+    // Create fingerprint hash
+    const fpData = JSON.stringify({
+      curvatures: curvatures.map(c => Math.round(c * 1000)),
+      transitions: transitions.map(t => `${t.from}→${t.to}`),
+      winding: { theta: thetaWinding, phi: phiWinding },
+      length: Math.round(totalLength * 1000),
+      bend: Math.round(curvatureIntegral * 1000)
+    });
+    const fpHash = crypto.createHash('sha256').update(fpData).digest('hex').slice(0, 32);
+
+    return {
+      hash: fpHash,
+      curvatureProfile: curvatures,
+      zoneTransitions: transitions,
+      windingNumbers: { theta: thetaWinding, phi: phiWinding },
+      totalGeodesicLength: Math.round(totalLength * 10000) / 10000,
+      curvatureIntegral: Math.round(curvatureIntegral * 10000) / 10000,
+      averageCurvature: Math.round(avgCurvature * 10000) / 10000,
+      trajectoryBias: avgCurvature > 0.05 ? 'SECURITY' : avgCurvature < -0.05 ? 'CREATIVE' : 'BALANCED'
+    };
+  },
+
+  // Verify an observed trajectory against expected shape
+  // This is where we catch the "bandits"
+  verifyTrajectory(observedWaypoints, expectedShape, options = {}) {
+    const { strict = false } = options;
+
+    if (!observedWaypoints || observedWaypoints.length === 0) {
+      return { valid: false, score: 0, reason: 'NO_TRAJECTORY', bandit: true };
+    }
+
+    const expected = expectedShape.waypoints;
+    const observed = observedWaypoints;
+
+    // Compute observed fingerprint
+    const observedFingerprint = this.computeShapeFingerprint(observed);
+
+    let penalties = [];
+    let score = 1.0;
+
+    // 1. Check curvature profile match
+    const expectedCurvatures = expectedShape.fingerprint.curvatureProfile;
+    const observedCurvatures = observedFingerprint.curvatureProfile;
+
+    // Resample if lengths differ
+    const minLen = Math.min(expectedCurvatures.length, observedCurvatures.length);
+    let curvatureDeviation = 0;
+    for (let i = 0; i < minLen; i++) {
+      curvatureDeviation += Math.abs(expectedCurvatures[i] - observedCurvatures[i]);
+    }
+    curvatureDeviation /= minLen;
+
+    if (curvatureDeviation > this.thresholds.curvatureDeviation) {
+      const penalty = Math.min(0.3, curvatureDeviation);
+      score -= penalty;
+      penalties.push({
+        type: 'CURVATURE_MISMATCH',
+        expected: expectedCurvatures.slice(0, 4),
+        observed: observedCurvatures.slice(0, 4),
+        deviation: Math.round(curvatureDeviation * 10000) / 10000,
+        penalty
+      });
+    }
+
+    // 2. Check zone transitions
+    const expectedTransitions = expectedShape.fingerprint.zoneTransitions;
+    const observedTransitions = observedFingerprint.zoneTransitions;
+
+    const transitionMismatch = Math.abs(expectedTransitions.length - observedTransitions.length);
+    if (transitionMismatch > 0) {
+      const penalty = transitionMismatch * this.thresholds.zoneTransitionPenalty;
+      score -= penalty;
+      penalties.push({
+        type: 'ZONE_TRANSITION_MISMATCH',
+        expected: expectedTransitions.length,
+        observed: observedTransitions.length,
+        penalty
+      });
+    }
+
+    // 3. Check winding numbers (topology must match)
+    const expectedWinding = expectedShape.fingerprint.windingNumbers;
+    const observedWinding = observedFingerprint.windingNumbers;
+
+    if (expectedWinding.theta !== observedWinding.theta ||
+        expectedWinding.phi !== observedWinding.phi) {
+      score -= this.thresholds.windingMismatch;
+      penalties.push({
+        type: 'WINDING_MISMATCH',
+        expected: expectedWinding,
+        observed: observedWinding,
+        penalty: this.thresholds.windingMismatch,
+        severity: 'HIGH - Topologically different path!'
+      });
+    }
+
+    // 4. Check geodesic length (should be similar)
+    const lengthRatio = observedFingerprint.totalGeodesicLength /
+                        (expectedShape.fingerprint.totalGeodesicLength || 1);
+    if (lengthRatio < 0.7 || lengthRatio > 1.4) {
+      const penalty = Math.abs(1 - lengthRatio) * 0.2;
+      score -= penalty;
+      penalties.push({
+        type: 'PATH_LENGTH_ANOMALY',
+        expected: expectedShape.fingerprint.totalGeodesicLength,
+        observed: observedFingerprint.totalGeodesicLength,
+        ratio: Math.round(lengthRatio * 100) / 100,
+        penalty
+      });
+    }
+
+    // 5. Check trajectory bias (security vs creative)
+    if (expectedShape.fingerprint.trajectoryBias !== observedFingerprint.trajectoryBias) {
+      score -= 0.15;
+      penalties.push({
+        type: 'TRAJECTORY_BIAS_MISMATCH',
+        expected: expectedShape.fingerprint.trajectoryBias,
+        observed: observedFingerprint.trajectoryBias,
+        penalty: 0.15
+      });
+    }
+
+    // 6. Fingerprint hash comparison (strict mode)
+    const hashMatch = expectedShape.fingerprint.hash === observedFingerprint.hash;
+    if (strict && !hashMatch) {
+      score -= 0.5;
+      penalties.push({
+        type: 'FINGERPRINT_HASH_MISMATCH',
+        expected: expectedShape.fingerprint.hash,
+        observed: observedFingerprint.hash,
+        penalty: 0.5
+      });
+    }
+
+    // Clamp score
+    score = Math.max(0, Math.min(1, score));
+
+    // BANDIT DETECTION
+    const isBandit = score < this.thresholds.banditThreshold;
+
+    return {
+      valid: score >= this.thresholds.trajectoryCoherence,
+      score: Math.round(score * 1000) / 1000,
+      bandit: isBandit,
+      banditConfidence: isBandit ? Math.round((1 - score) * 100) : 0,
+      penalties,
+      comparison: {
+        expectedHash: expectedShape.fingerprint.hash,
+        observedHash: observedFingerprint.hash,
+        hashMatch
+      },
+      fingerprints: {
+        expected: expectedShape.fingerprint,
+        observed: observedFingerprint
+      },
+      verdict: isBandit ?
+        'BANDIT_DETECTED: Trajectory shape does not match secret-key derived path. Intruder identified.' :
+        score >= this.thresholds.trajectoryCoherence ?
+        'AUTHENTIC: Trajectory matches expected geometric shape.' :
+        'SUSPICIOUS: Trajectory partially matches but has anomalies.'
+    };
+  },
+
+  // Create a compact "Hyper-Shape QR" code for transmission
+  // This is the geometric proof that can be verified by recipients
+  createHyperShapeQR(message, secretKey, observedTrajectory = null) {
+    const expected = this.generateExpectedShape(message, secretKey);
+
+    // If trajectory provided, verify it
+    let verification = null;
+    if (observedTrajectory) {
+      verification = this.verifyTrajectory(observedTrajectory, expected);
+    }
+
+    // Create compact QR representation
+    const qrData = {
+      v: 1,  // Version
+      m: crypto.createHash('sha256').update(message).digest('hex').slice(0, 8),
+      f: expected.fingerprint.hash,
+      w: expected.fingerprint.windingNumbers,
+      b: expected.fingerprint.trajectoryBias[0],  // S/C/B
+      l: Math.round(expected.fingerprint.totalGeodesicLength * 100),
+      t: Math.floor(Date.now() / 1000)
+    };
+
+    // Sign the QR data
+    const qrString = JSON.stringify(qrData);
+    const signature = crypto.createHmac('sha256', secretKey)
+      .update(qrString)
+      .digest('hex')
+      .slice(0, 16);
+
+    return {
+      qr: { ...qrData, s: signature },
+      qrString: Buffer.from(JSON.stringify({ ...qrData, s: signature })).toString('base64'),
+      expected,
+      verification
+    };
+  },
+
+  // Verify a received Hyper-Shape QR
+  verifyHyperShapeQR(qrData, secretKey, observedTrajectory = null) {
+    // Parse if string
+    if (typeof qrData === 'string') {
+      try {
+        qrData = JSON.parse(Buffer.from(qrData, 'base64').toString());
+      } catch {
+        return { valid: false, reason: 'INVALID_QR_FORMAT' };
+      }
+    }
+
+    // Extract signature
+    const { s: receivedSig, ...qrPayload } = qrData;
+
+    // Recompute signature
+    const qrString = JSON.stringify(qrPayload);
+    const expectedSig = crypto.createHmac('sha256', secretKey)
+      .update(qrString)
+      .digest('hex')
+      .slice(0, 16);
+
+    // Check signature
+    if (!crypto.timingSafeEqual(Buffer.from(receivedSig), Buffer.from(expectedSig))) {
+      return {
+        valid: false,
+        reason: 'SIGNATURE_MISMATCH',
+        bandit: true,
+        verdict: 'QR signature invalid - possible forgery attempt'
+      };
+    }
+
+    // Check timestamp (allow 5 minute window)
+    const age = Math.floor(Date.now() / 1000) - qrPayload.t;
+    if (age > 300 || age < -60) {
+      return {
+        valid: false,
+        reason: 'TIMESTAMP_EXPIRED',
+        age,
+        verdict: 'QR code has expired or has invalid timestamp'
+      };
+    }
+
+    // If trajectory provided, do full verification
+    if (observedTrajectory) {
+      // Regenerate expected shape (we need the secret key)
+      // In real use, we'd need the original message too
+      // For now, verify trajectory matches claimed fingerprint
+      const observedFingerprint = this.computeShapeFingerprint(observedTrajectory);
+
+      if (observedFingerprint.hash !== qrPayload.f) {
+        return {
+          valid: false,
+          reason: 'TRAJECTORY_MISMATCH',
+          bandit: true,
+          verdict: 'BANDIT_DETECTED: Observed trajectory does not match QR fingerprint',
+          comparison: {
+            claimed: qrPayload.f,
+            observed: observedFingerprint.hash
+          }
+        };
+      }
+    }
+
+    return {
+      valid: true,
+      qrData: qrPayload,
+      age,
+      verdict: 'QR code valid and signature verified'
+    };
+  },
+
+  // Detect "bandits" - intruders who bypassed other security but don't belong
+  detectBandit(trajectory, context = {}) {
+    const anomalies = [];
+    let banditScore = 0;
+
+    if (!trajectory || trajectory.length < 2) {
+      return {
+        bandit: true,
+        confidence: 1.0,
+        reason: 'NO_VALID_TRAJECTORY',
+        verdict: 'Cannot verify identity without trajectory data'
+      };
+    }
+
+    // 1. Check for impossible zone transitions
+    for (let i = 1; i < trajectory.length; i++) {
+      const from = ManifoldController.classifySemanticZone(trajectory[i-1].theta);
+      const to = ManifoldController.classifySemanticZone(trajectory[i].theta);
+
+      // Direct ABSOLUTE_TRUTH <-> MAXIMUM_FLUX is impossible without passing through
+      if ((from.semantic === 'ABSOLUTE_TRUTH' && to.semantic === 'MAXIMUM_FLUX') ||
+          (from.semantic === 'MAXIMUM_FLUX' && to.semantic === 'ABSOLUTE_TRUTH')) {
+
+        const intermediateTheta = (trajectory[i-1].theta + trajectory[i].theta) / 2;
+        const intermediate = ManifoldController.classifySemanticZone(intermediateTheta);
+
+        if (intermediate.semantic === 'ABSOLUTE_TRUTH' || intermediate.semantic === 'MAXIMUM_FLUX') {
+          banditScore += 0.4;
+          anomalies.push({
+            type: 'IMPOSSIBLE_ZONE_JUMP',
+            from: from.semantic,
+            to: to.semantic,
+            at: i,
+            severity: 'CRITICAL'
+          });
+        }
+      }
+    }
+
+    // 2. Check for discontinuous jumps (teleportation)
+    for (let i = 1; i < trajectory.length; i++) {
+      const distance = ManifoldController.calculateDivergence(
+        trajectory[i-1].theta, trajectory[i-1].phi,
+        trajectory[i].theta, trajectory[i].phi
+      );
+
+      // Jumps > π are geometrically suspicious
+      if (distance > Math.PI) {
+        banditScore += 0.3;
+        anomalies.push({
+          type: 'DISCONTINUOUS_JUMP',
+          distance: Math.round(distance * 1000) / 1000,
+          at: i,
+          severity: 'HIGH'
+        });
+      }
+    }
+
+    // 3. Check curvature consistency
+    const curvatures = trajectory.map(w => TorusGeometry.gaussianCurvature(w.theta));
+    let curvatureFlips = 0;
+    for (let i = 1; i < curvatures.length; i++) {
+      if (Math.sign(curvatures[i]) !== Math.sign(curvatures[i-1]) &&
+          Math.abs(curvatures[i]) > 0.1 && Math.abs(curvatures[i-1]) > 0.1) {
+        curvatureFlips++;
+      }
+    }
+
+    // Too many curvature flips is suspicious
+    if (curvatureFlips > trajectory.length / 2) {
+      banditScore += 0.2;
+      anomalies.push({
+        type: 'ERRATIC_CURVATURE',
+        flips: curvatureFlips,
+        expected: Math.floor(trajectory.length / 4),
+        severity: 'MEDIUM'
+      });
+    }
+
+    // 4. Check temporal consistency (if timestamps present)
+    if (trajectory[0].timestamp) {
+      for (let i = 1; i < trajectory.length; i++) {
+        const dt = trajectory[i].timestamp - trajectory[i-1].timestamp;
+        if (dt < 0) {
+          banditScore += 0.5;
+          anomalies.push({
+            type: 'TIME_REVERSAL',
+            at: i,
+            severity: 'CRITICAL'
+          });
+        }
+      }
+    }
+
+    // 5. Check for "too perfect" trajectory (might be simulated)
+    if (context.checkForSimulation) {
+      const distances = [];
+      for (let i = 1; i < trajectory.length; i++) {
+        distances.push(ManifoldController.calculateDivergence(
+          trajectory[i-1].theta, trajectory[i-1].phi,
+          trajectory[i].theta, trajectory[i].phi
+        ));
+      }
+
+      const avgDist = distances.reduce((a, b) => a + b, 0) / distances.length;
+      const variance = distances.reduce((sum, d) => sum + Math.pow(d - avgDist, 2), 0) / distances.length;
+
+      // Real trajectories have some variance; perfectly uniform is suspicious
+      if (variance < 0.001 && distances.length > 3) {
+        banditScore += 0.15;
+        anomalies.push({
+          type: 'SUSPICIOUSLY_UNIFORM',
+          variance: variance,
+          severity: 'LOW'
+        });
+      }
+    }
+
+    // Final verdict
+    const isBandit = banditScore >= 0.4;
+    const confidence = Math.min(1, banditScore / 0.8);
+
+    return {
+      bandit: isBandit,
+      confidence: Math.round(confidence * 1000) / 1000,
+      banditScore: Math.round(banditScore * 1000) / 1000,
+      anomalies,
+      anomalyCount: anomalies.length,
+      verdict: isBandit ?
+        `BANDIT DETECTED (${Math.round(confidence * 100)}% confidence): ${anomalies.map(a => a.type).join(', ')}` :
+        anomalies.length > 0 ?
+        `SUSPICIOUS: ${anomalies.length} anomalies detected but below bandit threshold` :
+        'CLEAN: Trajectory appears geometrically authentic'
+    };
+  }
+};
+
+// ============================================================================
 // Neural Synthesizer - Hear the Thoughts of the Network
 // Maps 10D manifold state to audio synthesis parameters
 // The torus surface becomes a wavetable; curvature becomes wave folding
@@ -3022,6 +3545,101 @@ exports.handler = async (event) => {
       return respond(200, result);
     }
 
+    // ========================================================================
+    // Geodesic Watermark Endpoints - The Shape IS the Authentication
+    // "You made it through, but you're still caught"
+    // ========================================================================
+
+    // POST /watermark/generate - Generate expected shape for message + secret
+    if (method === 'POST' && path === '/watermark/generate') {
+      const { message, secretKey, steps } = body;
+      if (!message || !secretKey) {
+        return respond(400, { error: 'Required: message, secretKey' });
+      }
+
+      const shape = GeodesicWatermark.generateExpectedShape(message, secretKey, { steps: steps || 8 });
+      return respond(200, {
+        message: message.slice(0, 50) + (message.length > 50 ? '...' : ''),
+        shape: {
+          waypoints: shape.waypoints,
+          fingerprint: shape.fingerprint,
+          timestamp: shape.timestamp
+        },
+        explanation: 'This is the expected trajectory shape. Any message claiming this content must traverse the manifold in this pattern.'
+      });
+    }
+
+    // POST /watermark/verify - Verify observed trajectory against expected
+    if (method === 'POST' && path === '/watermark/verify') {
+      const { message, secretKey, observedTrajectory, strict } = body;
+      if (!message || !secretKey || !observedTrajectory) {
+        return respond(400, { error: 'Required: message, secretKey, observedTrajectory (array of {theta, phi})' });
+      }
+
+      const expected = GeodesicWatermark.generateExpectedShape(message, secretKey);
+      const result = GeodesicWatermark.verifyTrajectory(observedTrajectory, expected, { strict });
+
+      return respond(result.bandit ? 403 : 200, result);
+    }
+
+    // POST /watermark/qr - Create Hyper-Shape QR code
+    if (method === 'POST' && path === '/watermark/qr') {
+      const { message, secretKey, trajectory } = body;
+      if (!message || !secretKey) {
+        return respond(400, { error: 'Required: message, secretKey' });
+      }
+
+      const qr = GeodesicWatermark.createHyperShapeQR(message, secretKey, trajectory);
+      return respond(200, {
+        qr: qr.qr,
+        qrString: qr.qrString,
+        fingerprint: qr.expected.fingerprint,
+        verification: qr.verification,
+        usage: 'Include qrString in transmission. Recipient verifies with /watermark/qr/verify'
+      });
+    }
+
+    // POST /watermark/qr/verify - Verify received QR code
+    if (method === 'POST' && path === '/watermark/qr/verify') {
+      const { qrString, qrData, secretKey, trajectory } = body;
+      if ((!qrString && !qrData) || !secretKey) {
+        return respond(400, { error: 'Required: (qrString or qrData), secretKey' });
+      }
+
+      const result = GeodesicWatermark.verifyHyperShapeQR(qrString || qrData, secretKey, trajectory);
+      return respond(result.valid ? 200 : 403, result);
+    }
+
+    // POST /watermark/bandit - Detect bandit from trajectory alone
+    if (method === 'POST' && path === '/watermark/bandit') {
+      const { trajectory, checkForSimulation } = body;
+      if (!trajectory || !Array.isArray(trajectory)) {
+        return respond(400, { error: 'Required: trajectory (array of {theta, phi})' });
+      }
+
+      const result = GeodesicWatermark.detectBandit(trajectory, { checkForSimulation });
+      return respond(result.bandit ? 403 : 200, result);
+    }
+
+    // POST /watermark/fingerprint - Compute shape fingerprint for trajectory
+    if (method === 'POST' && path === '/watermark/fingerprint') {
+      const { trajectory } = body;
+      if (!trajectory || !Array.isArray(trajectory)) {
+        return respond(400, { error: 'Required: trajectory (array of {theta, phi})' });
+      }
+
+      const fingerprint = GeodesicWatermark.computeShapeFingerprint(trajectory);
+      return respond(200, {
+        fingerprint,
+        trajectory: trajectory.map((w, i) => ({
+          index: i,
+          theta: w.theta,
+          phi: w.phi,
+          zone: ManifoldController.classifySemanticZone(w.theta).semantic
+        }))
+      });
+    }
+
     return respond(404, {
       error: 'Not found',
       endpoints: [
@@ -3031,7 +3649,9 @@ exports.handler = async (event) => {
         '/presets', '/drift', '/verify',
         '/synth', '/synth/raw', '/synth/verify', '/synth/lexicon', '/synth/compare',
         '/ledger', '/ledger/write', '/ledger/audit', '/ledger/path',
-        '/ledger/query', '/ledger/geodesic', '/ledger/zones', '/ledger/reset', '/ledger/hash'
+        '/ledger/query', '/ledger/geodesic', '/ledger/zones', '/ledger/reset', '/ledger/hash',
+        '/watermark/generate', '/watermark/verify', '/watermark/qr', '/watermark/qr/verify',
+        '/watermark/bandit', '/watermark/fingerprint'
       ]
     });
   } catch (err) {
