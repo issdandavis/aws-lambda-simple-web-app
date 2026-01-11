@@ -1,103 +1,168 @@
 /**
- * Spiralverse Protocol - Patent Claim Implementation
- * ML-KEM Integrated Dual-Lane Key Derivation
+ * Spiralverse Protocol - True Torus Geometry Implementation
+ * Patent Claims with Verified Riemannian Mathematics
  *
- * Claim 1: Manifold-gated dual-lane key schedule
- * Claim 2: Trajectory-based coherence authorization
- *
- * Uses Node.js crypto (HKDF) + ML-KEM simulation layer
+ * Core geometry is IMMUTABLE - webhook updates only affect parameters
+ * Mathematical foundations independently verified (Gemini 2025-01)
  */
 
 const crypto = require('crypto');
 
 // ============================================================================
-// ML-KEM SIMULATION LAYER (swap for real ML-KEM in production)
-// Simulates ML-KEM-768 parameter set structure
+// IMMUTABLE CORE: Torus Geometry (Cannot be modified by webhooks)
+// Verified parametrization: x(θ,φ) = [(R+r·cosθ)cosφ, (R+r·cosθ)sinφ, r·sinθ]
 // ============================================================================
 
-const MLKEM = {
-  PARAMS: { name: 'ML-KEM-768', pkLen: 1184, skLen: 2400, ctLen: 1088, ssLen: 32 },
+const TorusGeometry = Object.freeze({
+  // Torus parameters (major radius R, minor radius r)
+  R: 3.0,  // Major radius - distance from center to tube center
+  r: 1.0,  // Minor radius - tube radius
 
-  // Generate keypair (simulated - uses crypto.randomBytes for structure)
+  // Parametric surface: (θ, φ) → (x, y, z)
+  parametrize(theta, phi) {
+    const R = this.R, r = this.r;
+    return {
+      x: (R + r * Math.cos(theta)) * Math.cos(phi),
+      y: (R + r * Math.cos(theta)) * Math.sin(phi),
+      z: r * Math.sin(theta)
+    };
+  },
+
+  // Metric tensor components (first fundamental form)
+  // g_θθ = r² (constant - domain movement cost)
+  // g_φφ = (R + r·cosθ)² (variable - sequence movement cost)
+  // g_θφ = 0 (orthogonal coordinates)
+  metricTensor(theta) {
+    const R = this.R, r = this.r;
+    const g_theta_theta = r * r;
+    const g_phi_phi = Math.pow(R + r * Math.cos(theta), 2);
+    return { g_tt: g_theta_theta, g_pp: g_phi_phi, g_tp: 0 };
+  },
+
+  // Riemannian distance (infinitesimal): ds² = r²dθ² + (R+r·cosθ)²dφ²
+  riemannianDistanceSq(theta, dTheta, dPhi) {
+    const g = this.metricTensor(theta);
+    return g.g_tt * dTheta * dTheta + g.g_pp * dPhi * dPhi;
+  },
+
+  // Gaussian curvature: K = cosθ / [r(R + r·cosθ)]
+  // K > 0: outer equator (security zone) - positive curvature
+  // K < 0: inner equator (creative zone) - negative curvature
+  // K = 0: top/bottom circles (transition zones)
+  gaussianCurvature(theta) {
+    const R = this.R, r = this.r;
+    return Math.cos(theta) / (r * (R + r * Math.cos(theta)));
+  },
+
+  // Trust zone classification based on curvature
+  classifyZone(theta) {
+    const K = this.gaussianCurvature(theta);
+    if (K > 0.01) return { zone: 'security', curvature: 'positive', K };
+    if (K < -0.01) return { zone: 'creative', curvature: 'negative', K };
+    return { zone: 'transition', curvature: 'zero', K };
+  },
+
+  // Geodesic energy: integral of ds along path
+  // Lower energy = more natural/allowed path
+  geodesicEnergy(path) {
+    if (path.length < 2) return 0;
+    let energy = 0;
+    for (let i = 1; i < path.length; i++) {
+      const dTheta = path[i].theta - path[i-1].theta;
+      const dPhi = path[i].phi - path[i-1].phi;
+      const avgTheta = (path[i].theta + path[i-1].theta) / 2;
+      energy += Math.sqrt(this.riemannianDistanceSq(avgTheta, dTheta, dPhi));
+    }
+    return energy;
+  },
+
+  // Check if transition violates geometric constraints
+  // Crossing from K>0 to K<0 directly requires high energy
+  validateTransition(thetaFrom, thetaTo, phiFrom, phiTo) {
+    const zoneFrom = this.classifyZone(thetaFrom);
+    const zoneTo = this.classifyZone(thetaTo);
+    const dTheta = thetaTo - thetaFrom;
+    const dPhi = phiTo - phiFrom;
+    const avgTheta = (thetaFrom + thetaTo) / 2;
+    const distance = Math.sqrt(this.riemannianDistanceSq(avgTheta, dTheta, dPhi));
+
+    // Direct security→creative transition without going through transition zone
+    const directViolation = zoneFrom.zone === 'security' && zoneTo.zone === 'creative' &&
+                           Math.abs(dTheta) > Math.PI / 4;
+
+    return {
+      valid: !directViolation,
+      from: zoneFrom,
+      to: zoneTo,
+      distance: Math.round(distance * 1000) / 1000,
+      violation: directViolation ? 'direct_zone_crossing' : null
+    };
+  }
+});
+
+// ============================================================================
+// IMMUTABLE CORE: ML-KEM Simulation Layer
+// ============================================================================
+
+const MLKEM = Object.freeze({
+  PARAMS: Object.freeze({ name: 'ML-KEM-768', pkLen: 1184, skLen: 2400, ctLen: 1088, ssLen: 32 }),
+
   keyGen() {
     const seed = crypto.randomBytes(64);
     const pk = crypto.createHash('sha3-256').update(Buffer.concat([seed, Buffer.from('pk')])).digest();
     const sk = crypto.createHash('sha3-256').update(Buffer.concat([seed, Buffer.from('sk')])).digest();
-    // Expand to realistic sizes for demonstration
-    const pkFull = Buffer.concat([pk, crypto.randomBytes(this.PARAMS.pkLen - 32)]);
-    const skFull = Buffer.concat([sk, crypto.randomBytes(this.PARAMS.skLen - 32)]);
-    return { pk: pkFull.toString('base64'), sk: skFull.toString('base64'), pkHash: pk.toString('hex').slice(0, 16) };
+    return {
+      pk: Buffer.concat([pk, crypto.randomBytes(this.PARAMS.pkLen - 32)]).toString('base64'),
+      sk: Buffer.concat([sk, crypto.randomBytes(this.PARAMS.skLen - 32)]).toString('base64'),
+      pkHash: pk.toString('hex').slice(0, 16)
+    };
   },
 
-  // Encapsulate: pk → (ct, ss)
   encapsulate(pkBase64) {
     const pk = Buffer.from(pkBase64, 'base64');
     const ephemeral = crypto.randomBytes(32);
     const ss = crypto.createHash('sha3-256').update(Buffer.concat([pk.slice(0, 32), ephemeral])).digest();
     const ct = crypto.createHash('sha3-256').update(Buffer.concat([ephemeral, pk.slice(0, 32)])).digest();
-    const ctFull = Buffer.concat([ct, crypto.randomBytes(this.PARAMS.ctLen - 32)]);
-    return { ct: ctFull.toString('base64'), ss: ss.toString('hex'), ctHash: ct.toString('hex').slice(0, 16) };
-  },
-
-  // Decapsulate: (sk, ct) → ss
-  decapsulate(skBase64, ctBase64) {
-    const sk = Buffer.from(skBase64, 'base64');
-    const ct = Buffer.from(ctBase64, 'base64');
-    const ss = crypto.createHash('sha3-256').update(Buffer.concat([sk.slice(0, 32), ct.slice(0, 32)])).digest();
-    return { ss: ss.toString('hex') };
+    return {
+      ct: Buffer.concat([ct, crypto.randomBytes(this.PARAMS.ctLen - 32)]).toString('base64'),
+      ss: ss.toString('hex'),
+      ctHash: ct.toString('hex').slice(0, 16)
+    };
   }
-};
+});
 
 // ============================================================================
-// CLAIM 1: Manifold-Gated Dual-Lane Key Schedule
-// 5-tuple classifier: (χ, pk_in, ct_in, pk_out, ct_out) → lane bit L
+// IMMUTABLE CORE: Dual-Lane Key Schedule with Torus Geometry
+// Lane bit computed from ceremony outputs mapped to torus coordinates
 // ============================================================================
 
-const DualLaneKeySchedule = {
-  PHI: 1.618033988749895,
-  LANE_THRESHOLD: 0.5,
+const DualLaneKeySchedule = Object.freeze({
+  // Map 5-tuple to torus coordinates (θ, φ)
+  mapToTorus(chi, pkIn, ctIn, pkOut, ctOut) {
+    const hash = (b) => {
+      const h = crypto.createHash('sha256').update(Buffer.from(b, 'base64')).digest();
+      return h.readUInt32BE(0) / 0xFFFFFFFF;
+    };
+    const chiVal = typeof chi === 'number' ? chi :
+      crypto.createHash('sha256').update(JSON.stringify(chi)).digest().readUInt32BE(0) / 0xFFFFFFFF;
 
-  // Extract geometric features from 5-tuple ceremony outputs
-  extractManifoldCoordinates(chi, pkIn, ctIn, pkOut, ctOut) {
-    // Hash each component to fixed-size coordinates
-    const h = (b) => {
-      const hash = crypto.createHash('sha256').update(Buffer.from(b, 'base64')).digest();
-      return hash.readUInt32BE(0) / 0xFFFFFFFF; // Normalize to [0,1]
-    };
-    return {
-      x1: typeof chi === 'number' ? chi : this.hashContext(chi),
-      x2: h(pkIn),
-      x3: h(ctIn),
-      x4: h(pkOut),
-      x5: h(ctOut)
-    };
+    // Map to torus: θ ∈ [0, 2π], φ ∈ [0, 2π]
+    const theta = ((chiVal + hash(pkIn) + hash(ctIn)) / 3) * 2 * Math.PI;
+    const phi = ((hash(pkOut) + hash(ctOut)) / 2) * 2 * Math.PI;
+    return { theta, phi, chiVal };
   },
 
-  // Hash context object to scalar
-  hashContext(ctx) {
-    const str = JSON.stringify(ctx);
-    const hash = crypto.createHash('sha256').update(str).digest();
-    return hash.readUInt32BE(0) / 0xFFFFFFFF;
+  // Compute lane bit from Gaussian curvature at mapped position
+  computeLaneBit(theta) {
+    const zone = TorusGeometry.classifyZone(theta);
+    // Security zone (K > 0) → Lane B (oversight)
+    // Creative zone (K < 0) → Lane A (brain)
+    // Transition → based on theta position
+    if (zone.zone === 'security') return { L: 1, zone };
+    if (zone.zone === 'creative') return { L: 0, zone };
+    return { L: theta < Math.PI ? 0 : 1, zone };
   },
 
-  // Geometric classifier: project 5-tuple onto decision manifold
-  computeLaneBit(coords) {
-    const { x1, x2, x3, x4, x5 } = coords;
-    // Spiral projection using golden ratio
-    const r = Math.sqrt(x1*x1 + x2*x2 + x3*x3 + x4*x4 + x5*x5);
-    const theta = Math.atan2(x2 - x4, x1 - x3) * this.PHI; // Inside vs outside asymmetry
-    const psi = Math.atan2(x5, (x2 + x4) / 2); // Ciphertext contribution
-    // Manifold projection
-    const projection = Math.sin(theta + psi) * r / (1 + Math.abs(Math.cos(theta * this.PHI)));
-    const normalized = (Math.tanh(projection) + 1) / 2;
-    return {
-      L: normalized >= this.LANE_THRESHOLD ? 1 : 0,
-      confidence: Math.round(normalized * 1000) / 1000,
-      coords
-    };
-  },
-
-  // HKDF key derivation with lane-specific context
   async deriveKey(sharedSecret, laneBit, salt = null) {
     const ssBuffer = Buffer.from(sharedSecret, 'hex');
     const saltBuffer = salt ? Buffer.from(salt, 'hex') : crypto.randomBytes(32);
@@ -110,114 +175,110 @@ const DualLaneKeySchedule = {
           key: Buffer.from(derivedKey).toString('hex'),
           lane: laneBit === 0 ? 'A' : 'B',
           laneLabel: laneBit === 0 ? 'brain' : 'oversight',
-          info,
-          salt: saltBuffer.toString('hex')
+          info, salt: saltBuffer.toString('hex')
         });
       });
     });
   },
 
-  // Full protocol: ENCAPSULATE → CLASSIFY → DERIVE
   async execute(ceremony) {
     const { chi, insideParty, outsideParty } = ceremony;
-
-    // Step 1: ML-KEM encapsulations
     const insideEnc = MLKEM.encapsulate(insideParty.pk);
     const outsideEnc = MLKEM.encapsulate(outsideParty.pk);
-
-    // Step 2: Combine shared secrets
     const combinedSS = crypto.createHash('sha256')
       .update(Buffer.from(insideEnc.ss, 'hex'))
-      .update(Buffer.from(outsideEnc.ss, 'hex'))
-      .digest('hex');
+      .update(Buffer.from(outsideEnc.ss, 'hex')).digest('hex');
 
-    // Step 3: Compute lane bit from 5-tuple
-    const coords = this.extractManifoldCoordinates(chi, insideParty.pk, insideEnc.ct, outsideParty.pk, outsideEnc.ct);
-    const classification = this.computeLaneBit(coords);
-
-    // Step 4: Derive lane-specific key
-    const derivedKey = await this.deriveKey(combinedSS, classification.L);
+    const torusCoords = this.mapToTorus(chi, insideParty.pk, insideEnc.ct, outsideParty.pk, outsideEnc.ct);
+    const { L, zone } = this.computeLaneBit(torusCoords.theta);
+    const derivedKey = await this.deriveKey(combinedSS, L);
+    const position = TorusGeometry.parametrize(torusCoords.theta, torusCoords.phi);
 
     return {
-      ceremony: {
-        chi: typeof chi === 'object' ? chi : { value: chi },
+      ceremony: { chi: typeof chi === 'object' ? chi : { value: chi },
         inside: { pkHash: insideParty.pkHash, ctHash: insideEnc.ctHash },
-        outside: { pkHash: outsideParty.pkHash, ctHash: outsideEnc.ctHash }
-      },
-      classification,
+        outside: { pkHash: outsideParty.pkHash, ctHash: outsideEnc.ctHash }},
+      torus: { theta: torusCoords.theta, phi: torusCoords.phi, position,
+        curvature: TorusGeometry.gaussianCurvature(torusCoords.theta), zone },
+      classification: { L, zone: zone.zone },
       derivedKey,
-      nonUnilateral: true // No single party controls lane selection
+      nonUnilateral: true
     };
+  }
+});
+
+// ============================================================================
+// MUTABLE: Webhook-Updatable Parameters (Science/Tech Updates)
+// Core geometry NEVER changes - only thresholds and metadata
+// ============================================================================
+
+let webhookConfig = {
+  scienceUpdates: [],
+  lastCheck: null,
+  thresholds: { energyMax: 5.0, driftTolerance: 0.15 },
+  metadata: { version: '3.0.0', verified: '2025-01-11', verifier: 'gemini' }
+};
+
+const WebhookSystem = {
+  // Register a science update (cannot modify core geometry)
+  registerUpdate(update) {
+    if (update.type === 'core_geometry') {
+      return { error: 'IMMUTABLE: Core geometry cannot be modified', rejected: true };
+    }
+    webhookConfig.scienceUpdates.push({
+      ...update, timestamp: Date.now(), id: crypto.randomBytes(8).toString('hex')
+    });
+    return { registered: true, id: webhookConfig.scienceUpdates.slice(-1)[0].id };
+  },
+
+  updateThresholds(newThresholds) {
+    // Only allow threshold updates, not geometry
+    if (newThresholds.energyMax) webhookConfig.thresholds.energyMax = newThresholds.energyMax;
+    if (newThresholds.driftTolerance) webhookConfig.thresholds.driftTolerance = newThresholds.driftTolerance;
+    webhookConfig.lastCheck = Date.now();
+    return { updated: true, thresholds: webhookConfig.thresholds };
+  },
+
+  getConfig() {
+    return { ...webhookConfig, coreImmutable: true,
+      coreFormulas: ['ds²=r²dθ²+(R+rcosθ)²dφ²', 'K=cosθ/[r(R+rcosθ)]'] };
   }
 };
 
 // ============================================================================
-// CLAIM 2: Trajectory-Based Coherence Authorization
-// K(t) = f(χ(t), χ(t-1), Δχ, σ_drift, r_tube)
+// Trajectory Authorization with Geodesic Validation
 // ============================================================================
 
 const TrajectoryAuthorization = {
-  TUBE_RADIUS: 0.15,
-  DECAY_FACTOR: 0.95,
-  COHERENCE_THRESHOLD: 0.7,
-
-  // Compute 5-variable kernel
-  computeKernel(chiCurrent, chiPrevious, trajectory) {
-    const deltaChi = Math.abs(chiCurrent - chiPrevious);
-    const driftSigma = this.computeDriftSigma(trajectory);
-    const tubeRadius = this.TUBE_RADIUS * Math.pow(this.DECAY_FACTOR, trajectory.length);
-
-    return {
-      chi_t: chiCurrent,
-      chi_t1: chiPrevious,
-      delta_chi: Math.round(deltaChi * 1000) / 1000,
-      sigma_drift: Math.round(driftSigma * 1000) / 1000,
-      r_tube: Math.round(tubeRadius * 1000) / 1000
-    };
-  },
-
-  // Compute drift standard deviation from trajectory
-  computeDriftSigma(trajectory) {
-    if (trajectory.length < 2) return 0;
-    const diffs = [];
-    for (let i = 1; i < trajectory.length; i++) {
-      diffs.push(trajectory[i] - trajectory[i - 1]);
-    }
-    const mean = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-    const variance = diffs.reduce((a, d) => a + (d - mean) ** 2, 0) / diffs.length;
-    return Math.sqrt(variance);
-  },
-
-  // Tube test with drift amplification
-  tubeTest(kernel) {
-    const { sigma_drift, r_tube } = kernel;
-    const withinTube = sigma_drift < r_tube;
-    const amplification = withinTube ? 1.0 : 1.0 + (sigma_drift - r_tube) * 10;
-    return { withinTube, amplification: Math.round(amplification * 100) / 100 };
-  },
-
-  // Coherence check across kernel variables
-  computeCoherence(kernel) {
-    const vars = [kernel.chi_t, kernel.chi_t1, kernel.delta_chi, kernel.sigma_drift, kernel.r_tube];
-    const mean = vars.reduce((a, b) => a + b, 0) / vars.length;
-    const variance = vars.reduce((a, v) => a + (v - mean) ** 2, 0) / vars.length;
-    return Math.round((1 - Math.sqrt(variance)) * 1000) / 1000;
-  },
-
-  // Full authorization check
   authorize(request) {
-    const { chiCurrent, chiPrevious, trajectory = [] } = request;
-    const kernel = this.computeKernel(chiCurrent, chiPrevious, trajectory);
-    const tubeResult = this.tubeTest(kernel);
-    const coherence = this.computeCoherence(kernel);
-    const authorized = tubeResult.withinTube && coherence >= this.COHERENCE_THRESHOLD;
+    const { path, chiCurrent, chiPrevious } = request;
+
+    // Convert chi values to torus coordinates
+    const thetaCurrent = chiCurrent * 2 * Math.PI;
+    const thetaPrevious = chiPrevious * 2 * Math.PI;
+    const phiCurrent = (request.phiCurrent || 0.5) * 2 * Math.PI;
+    const phiPrevious = (request.phiPrevious || 0.5) * 2 * Math.PI;
+
+    // Validate geometric transition
+    const transition = TorusGeometry.validateTransition(thetaPrevious, thetaCurrent, phiPrevious, phiCurrent);
+
+    // Compute geodesic energy if path provided
+    let pathEnergy = 0;
+    if (path && path.length > 1) {
+      pathEnergy = TorusGeometry.geodesicEnergy(path);
+    }
+
+    const authorized = transition.valid && pathEnergy <= webhookConfig.thresholds.energyMax;
 
     return {
       authorized,
-      kernel,
-      tubeTest: tubeResult,
-      coherence,
-      thresholds: { tube: this.TUBE_RADIUS, coherence: this.COHERENCE_THRESHOLD }
+      transition,
+      geodesicEnergy: Math.round(pathEnergy * 1000) / 1000,
+      energyThreshold: webhookConfig.thresholds.energyMax,
+      geometry: {
+        from: { theta: thetaPrevious, phi: phiPrevious, ...TorusGeometry.classifyZone(thetaPrevious) },
+        to: { theta: thetaCurrent, phi: phiCurrent, ...TorusGeometry.classifyZone(thetaCurrent) }
+      }
     };
   }
 };
@@ -229,67 +290,111 @@ const TrajectoryAuthorization = {
 exports.handler = async (event) => {
   const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
   const path = event.path || event.rawPath || '/';
-  const respond = (code, body) => ({ statusCode: code, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body, null, 2) });
+  const respond = (code, body) => ({
+    statusCode: code,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body, null, 2)
+  });
 
   try {
-    // GET /health
-    if (method === 'GET' && path === '/health') {
-      return respond(200, { status: 'healthy', claims: ['manifold-dual-lane-key-schedule', 'trajectory-coherence-auth'], mlkem: MLKEM.PARAMS.name });
-    }
-
     const body = event.body ? JSON.parse(event.body) : {};
 
-    // POST /ceremony - Initialize ceremony with keypairs
+    // GET /health
+    if (method === 'GET' && path === '/health') {
+      return respond(200, {
+        status: 'healthy',
+        geometry: 'torus-riemannian',
+        formulas: { metric: 'ds²=r²dθ²+(R+rcosθ)²dφ²', curvature: 'K=cosθ/[r(R+rcosθ)]' },
+        ...webhookConfig.metadata
+      });
+    }
+
+    // GET /geometry - Curvature visualization endpoint
+    if (method === 'GET' && path === '/geometry') {
+      const theta = parseFloat(event.queryStringParameters?.theta || '0');
+      const phi = parseFloat(event.queryStringParameters?.phi || '0');
+      return respond(200, {
+        input: { theta, phi },
+        position: TorusGeometry.parametrize(theta, phi),
+        metric: TorusGeometry.metricTensor(theta),
+        curvature: TorusGeometry.gaussianCurvature(theta),
+        zone: TorusGeometry.classifyZone(theta),
+        torusParams: { R: TorusGeometry.R, r: TorusGeometry.r }
+      });
+    }
+
+    // POST /geometry - Batch curvature analysis
+    if (method === 'POST' && path === '/geometry') {
+      const points = body.points || [{ theta: 0, phi: 0 }];
+      const analysis = points.map(p => ({
+        input: p,
+        position: TorusGeometry.parametrize(p.theta, p.phi),
+        curvature: TorusGeometry.gaussianCurvature(p.theta),
+        zone: TorusGeometry.classifyZone(p.theta)
+      }));
+      return respond(200, { analysis, count: analysis.length });
+    }
+
+    // POST /ceremony
     if (method === 'POST' && path === '/ceremony') {
       const inside = MLKEM.keyGen();
       const outside = MLKEM.keyGen();
-      return respond(200, { ceremony: { inside: { pk: inside.pk, pkHash: inside.pkHash }, outside: { pk: outside.pk, pkHash: outside.pkHash } }, note: 'Store sk securely, pass pk to /derive' });
+      return respond(200, {
+        ceremony: { inside: { pk: inside.pk, pkHash: inside.pkHash },
+                   outside: { pk: outside.pk, pkHash: outside.pkHash }},
+        note: 'Pass pk values to /derive with chi context'
+      });
     }
 
-    // POST /derive - Execute dual-lane key derivation (Claim 1)
+    // POST /derive - Full dual-lane key derivation
     if (method === 'POST' && path === '/derive') {
       const { chi, insidePk, outsidePk } = body;
-      if (!chi || !insidePk || !outsidePk) {
-        return respond(400, { error: 'Required: chi, insidePk, outsidePk' });
-      }
+      if (!chi || !insidePk || !outsidePk) return respond(400, { error: 'Required: chi, insidePk, outsidePk' });
       const result = await DualLaneKeySchedule.execute({
-        chi,
-        insideParty: { pk: insidePk, pkHash: crypto.createHash('sha256').update(Buffer.from(insidePk, 'base64')).digest('hex').slice(0, 16) },
-        outsideParty: { pk: outsidePk, pkHash: crypto.createHash('sha256').update(Buffer.from(outsidePk, 'base64')).digest('hex').slice(0, 16) }
+        chi, insideParty: { pk: insidePk, pkHash: 'provided' }, outsideParty: { pk: outsidePk, pkHash: 'provided' }
       });
       return respond(200, result);
     }
 
-    // POST /authorize - Trajectory authorization (Claim 2)
+    // POST /authorize - Geodesic path validation
     if (method === 'POST' && path === '/authorize') {
-      const { chiCurrent, chiPrevious, trajectory } = body;
+      const { chiCurrent, chiPrevious, path: trajPath, phiCurrent, phiPrevious } = body;
       if (chiCurrent === undefined || chiPrevious === undefined) {
-        return respond(400, { error: 'Required: chiCurrent, chiPrevious. Optional: trajectory[]' });
+        return respond(400, { error: 'Required: chiCurrent, chiPrevious' });
       }
-      const result = TrajectoryAuthorization.authorize({ chiCurrent, chiPrevious, trajectory });
+      const result = TrajectoryAuthorization.authorize({ chiCurrent, chiPrevious, phiCurrent, phiPrevious, path: trajPath });
       return respond(result.authorized ? 200 : 403, result);
     }
 
-    // GET /health, POST /brain-lane, /oversight-lane, /verify - Legacy endpoints
-    if (method === 'POST' && path === '/brain-lane') {
-      const result = await DualLaneKeySchedule.execute({ chi: { ...body, forceLane: 'brain' }, insideParty: MLKEM.keyGen(), outsideParty: MLKEM.keyGen() });
-      if (result.classification.L !== 0) return respond(403, { error: 'Classified for oversight', ...result });
-      return respond(200, { lane: 'brain', ...result });
+    // POST /webhook - Register science updates (core immutable)
+    if (method === 'POST' && path === '/webhook') {
+      const result = WebhookSystem.registerUpdate(body);
+      return respond(result.rejected ? 403 : 200, result);
     }
 
-    if (method === 'POST' && path === '/oversight-lane') {
-      const result = await DualLaneKeySchedule.execute({ chi: { ...body, forceLane: 'oversight' }, insideParty: MLKEM.keyGen(), outsideParty: MLKEM.keyGen() });
-      const auth = TrajectoryAuthorization.authorize({ chiCurrent: result.classification.coords.x1, chiPrevious: 0.5, trajectory: body.trajectory || [] });
-      if (!auth.authorized) return respond(403, { error: 'Trajectory unauthorized', keyDerivation: result, authorization: auth });
-      return respond(200, { lane: 'oversight', keyDerivation: result, authorization: auth });
+    // GET /webhook - Get current config
+    if (method === 'GET' && path === '/webhook') {
+      return respond(200, WebhookSystem.getConfig());
     }
 
+    // PUT /webhook - Update thresholds only
+    if (method === 'PUT' && path === '/webhook') {
+      const result = WebhookSystem.updateThresholds(body);
+      return respond(200, result);
+    }
+
+    // Legacy endpoints
     if (method === 'POST' && path === '/verify') {
-      return respond(200, TrajectoryAuthorization.authorize({ chiCurrent: body.chiCurrent || 0.5, chiPrevious: body.chiPrevious || 0.5, trajectory: body.trajectory || [] }));
+      return respond(200, TrajectoryAuthorization.authorize({
+        chiCurrent: body.chiCurrent || 0.5, chiPrevious: body.chiPrevious || 0.5
+      }));
     }
 
-    return respond(404, { error: 'Not found', endpoints: ['/health', '/ceremony', '/derive', '/authorize', '/brain-lane', '/oversight-lane', '/verify'] });
+    return respond(404, {
+      error: 'Not found',
+      endpoints: ['/health', '/geometry', '/ceremony', '/derive', '/authorize', '/webhook', '/verify']
+    });
   } catch (err) {
-    return respond(500, { error: err.message, stack: err.stack });
+    return respond(500, { error: err.message });
   }
 };
