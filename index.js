@@ -2390,6 +2390,760 @@ const GeodesicWatermark = {
 };
 
 // ============================================================================
+// Tesseract Core - 16 Vertices of Universal Truth
+// MATH (immutable) vs VARIABLES (tunable)
+// The spaceship environment where AI crews operate
+// ============================================================================
+
+const TesseractCore = Object.freeze({
+  // =========================================================================
+  // MATH - Immutable Universal Constants (cannot be changed)
+  // These are the 16 vertices of our 4D hypercube anchor system
+  // =========================================================================
+
+  UNIVERSAL_CONSTANTS: Object.freeze({
+    // Vertex 0-3: Fundamental physics
+    c: 299792458,              // Speed of light (m/s)
+    h: 6.62607015e-34,         // Planck constant (J·s)
+    G: 6.67430e-11,            // Gravitational constant (m³/kg·s²)
+    e: 1.602176634e-19,        // Elementary charge (C)
+
+    // Vertex 4-7: Mathematical constants
+    pi: Math.PI,               // π - circle ratio
+    tau: 2 * Math.PI,          // τ - full rotation
+    phi: (1 + Math.sqrt(5)) / 2,  // φ - golden ratio (1.618...)
+    euler: Math.E,             // e - natural base
+
+    // Vertex 8-11: Geometric constants
+    sqrt2: Math.SQRT2,         // √2 - diagonal ratio
+    sqrt3: Math.sqrt(3),       // √3 - equilateral height
+    sqrt5: Math.sqrt(5),       // √5 - pentagon diagonal
+    ln2: Math.LN2,             // ln(2) - binary/natural bridge
+
+    // Vertex 12-15: Spiralverse constants (derived)
+    torusR: 3.0,               // Major radius (immutable)
+    torusR_r: 1.0,             // Minor radius (immutable)
+    manifoldDim: 10,           // 10D manifold dimension
+    tesseractVert: 16          // This very count - self-referential anchor
+  }),
+
+  // The 16 vertices of the tesseract in 4D coordinates
+  // Each vertex is a binary tuple (±1, ±1, ±1, ±1)
+  TESSERACT_VERTICES: Object.freeze([
+    { id: 0,  coords: [-1,-1,-1,-1], anchor: 'c',          realm: 'physics' },
+    { id: 1,  coords: [-1,-1,-1, 1], anchor: 'h',          realm: 'physics' },
+    { id: 2,  coords: [-1,-1, 1,-1], anchor: 'G',          realm: 'physics' },
+    { id: 3,  coords: [-1,-1, 1, 1], anchor: 'e',          realm: 'physics' },
+    { id: 4,  coords: [-1, 1,-1,-1], anchor: 'pi',         realm: 'mathematical' },
+    { id: 5,  coords: [-1, 1,-1, 1], anchor: 'tau',        realm: 'mathematical' },
+    { id: 6,  coords: [-1, 1, 1,-1], anchor: 'phi',        realm: 'mathematical' },
+    { id: 7,  coords: [-1, 1, 1, 1], anchor: 'euler',      realm: 'mathematical' },
+    { id: 8,  coords: [ 1,-1,-1,-1], anchor: 'sqrt2',      realm: 'geometric' },
+    { id: 9,  coords: [ 1,-1,-1, 1], anchor: 'sqrt3',      realm: 'geometric' },
+    { id: 10, coords: [ 1,-1, 1,-1], anchor: 'sqrt5',      realm: 'geometric' },
+    { id: 11, coords: [ 1,-1, 1, 1], anchor: 'ln2',        realm: 'geometric' },
+    { id: 12, coords: [ 1, 1,-1,-1], anchor: 'torusR',     realm: 'spiralverse' },
+    { id: 13, coords: [ 1, 1,-1, 1], anchor: 'torusR_r',   realm: 'spiralverse' },
+    { id: 14, coords: [ 1, 1, 1,-1], anchor: 'manifoldDim', realm: 'spiralverse' },
+    { id: 15, coords: [ 1, 1, 1, 1], anchor: 'tesseractVert', realm: 'spiralverse' }
+  ]),
+
+  // Tesseract has 32 edges connecting adjacent vertices
+  TESSERACT_EDGES: Object.freeze([
+    [0,1],[0,2],[0,4],[0,8], [1,3],[1,5],[1,9], [2,3],[2,6],[2,10],
+    [3,7],[3,11], [4,5],[4,6],[4,12], [5,7],[5,13], [6,7],[6,14],
+    [7,15], [8,9],[8,10],[8,12], [9,11],[9,13], [10,11],[10,14],
+    [11,15], [12,13],[12,14], [13,15], [14,15]
+  ]),
+
+  // =========================================================================
+  // VARIABLES - Tunable Environment Parameters
+  // These can be adjusted for "artificial gravity" - making the AI space comfortable
+  // =========================================================================
+
+  createEnvironment(overrides = {}) {
+    return {
+      // Gravity-like parameters (how "heavy" operations feel)
+      gravity: {
+        semantic: overrides.semanticWeight ?? 1.0,      // Weight of meaning
+        temporal: overrides.temporalWeight ?? 1.0,      // Weight of time
+        spatial: overrides.spatialWeight ?? 1.0,        // Weight of context
+        creative: overrides.creativeWeight ?? 1.0,      // Weight of exploration
+        security: overrides.securityWeight ?? 1.0       // Weight of verification
+      },
+
+      // Atmosphere parameters (the "feel" of the space)
+      atmosphere: {
+        viscosity: overrides.viscosity ?? 0.1,          // Resistance to movement
+        temperature: overrides.temperature ?? 1.0,      // Energy level (0=frozen, 2=hot)
+        pressure: overrides.pressure ?? 1.0,            // Constraint tightness
+        luminosity: overrides.luminosity ?? 1.0         // Clarity of perception
+      },
+
+      // Shield parameters (protection thresholds)
+      shields: {
+        snap: overrides.snapThreshold ?? 0.5,           // When geometry breaks
+        bandit: overrides.banditThreshold ?? 0.6,       // Imposter detection
+        drift: overrides.driftTolerance ?? 0.3,         // Allowed semantic drift
+        stutter: overrides.stutterBase ?? 50            // Base time dilation (ms)
+      },
+
+      // Mission parameters
+      mission: {
+        maxDuration: overrides.maxDuration ?? 300000,   // 5 minute default
+        checkpoints: overrides.checkpoints ?? 8,        // Waypoints to verify
+        reportingLevel: overrides.reportingLevel ?? 2   // 0=silent, 3=verbose
+      }
+    };
+  },
+
+  // =========================================================================
+  // Plasmatic Surface - Dynamic but Deterministic Authentication
+  // Like lava/tiger stripes - appears chaotic but is mathematically precise
+  // =========================================================================
+
+  // Generate plasmatic surface value at given coordinates and time
+  plasmaticSurface(x, y, z, t, seed = 0) {
+    const { pi, phi, euler } = this.UNIVERSAL_CONSTANTS;
+
+    // Multiple overlapping wave functions (like plasma simulation)
+    const wave1 = Math.sin(x * pi + t * 0.7 + seed);
+    const wave2 = Math.sin(y * phi + t * 0.5);
+    const wave3 = Math.sin((x + y) * euler + t * 0.3);
+    const wave4 = Math.sin(Math.sqrt(x*x + y*y) * pi + t * 0.9);
+    const wave5 = Math.cos(z * phi + t * 0.4);
+
+    // Combine with golden ratio weighting
+    const plasma = (wave1 + wave2 * phi + wave3 / phi + wave4 + wave5 * euler) / (3 + phi + euler);
+
+    // Normalize to 0-1
+    return (plasma + 1) / 2;
+  },
+
+  // Generate tiger-stripe pattern (deterministic chaos)
+  tigerStripe(theta, phi, t, secretKey) {
+    const keyHash = crypto.createHash('sha256').update(secretKey).digest();
+    const seed = keyHash.readUInt32BE(0) / 0xFFFFFFFF;
+
+    const { sqrt2, sqrt3, sqrt5 } = this.UNIVERSAL_CONSTANTS;
+
+    // Irregular but deterministic stripes
+    const stripe1 = Math.sin(theta * 7 * sqrt2 + seed * 100);
+    const stripe2 = Math.sin(phi * 11 * sqrt3 + seed * 200 + t * 0.1);
+    const stripe3 = Math.cos((theta + phi) * 13 * sqrt5 + seed * 300);
+
+    // Combine into tiger pattern
+    const pattern = (stripe1 * stripe2 + stripe3) / 2;
+
+    return {
+      value: (pattern + 1) / 2,
+      stripe: pattern > 0.3 ? 'LIGHT' : pattern < -0.3 ? 'DARK' : 'TRANSITION',
+      intensity: Math.abs(pattern)
+    };
+  },
+
+  // =========================================================================
+  // State Reading - Same from Any Face of the Tesseract
+  // The state must be consistent regardless of which "face" you observe from
+  // =========================================================================
+
+  // Read state through a specific tesseract face (cell)
+  // Tesseract has 8 cubic cells - state should be the same through any
+  readStateThroughFace(state, faceIndex) {
+    // Normalize face index to 0-7 (8 cubic cells)
+    const face = faceIndex % 8;
+
+    // Each face involves 8 vertices
+    const faceVertices = [
+      [0,1,2,3,4,5,6,7],     // Cell 0: first cube
+      [8,9,10,11,12,13,14,15], // Cell 1: opposite cube
+      [0,1,4,5,8,9,12,13],   // Cell 2: front-back slice
+      [2,3,6,7,10,11,14,15], // Cell 3: opposite slice
+      [0,2,4,6,8,10,12,14],  // Cell 4: left-right slice
+      [1,3,5,7,9,11,13,15],  // Cell 5: opposite slice
+      [0,1,2,3,8,9,10,11],   // Cell 6: bottom-top slice
+      [4,5,6,7,12,13,14,15]  // Cell 7: opposite slice
+    ][face];
+
+    // Compute state hash using face-specific vertices
+    let hash = 0;
+    for (const vIdx of faceVertices) {
+      const vertex = this.TESSERACT_VERTICES[vIdx];
+      const constant = this.UNIVERSAL_CONSTANTS[vertex.anchor];
+      // Mix in the constant value
+      hash ^= Math.floor(constant * 1000000) % 0xFFFFFFFF;
+      // Mix in the state
+      hash ^= (state >> (vIdx % 32)) | (state << (32 - vIdx % 32));
+      hash = (hash * 0x45d9f3b) & 0xFFFFFFFF;
+    }
+
+    return hash >>> 0;  // Ensure unsigned
+  },
+
+  // Verify state is consistent across all faces
+  verifyStateConsistency(state) {
+    const readings = [];
+    for (let face = 0; face < 8; face++) {
+      readings.push(this.readStateThroughFace(state, face));
+    }
+
+    // For a valid state, all readings should produce consistent results
+    // (not identical, but related by the tesseract structure)
+    const baseReading = readings[0];
+    const deviations = readings.map(r => {
+      const xor = r ^ baseReading;
+      // Count bits that differ
+      let bits = 0;
+      let n = xor;
+      while (n) { bits += n & 1; n >>>= 1; }
+      return bits;
+    });
+
+    const avgDeviation = deviations.reduce((a, b) => a + b, 0) / 8;
+    const consistent = avgDeviation < 16;  // Less than half the bits differ
+
+    return {
+      consistent,
+      readings,
+      avgBitDeviation: avgDeviation,
+      verdict: consistent ?
+        'State is geometrically consistent across all tesseract faces' :
+        'State inconsistency detected - possible corruption or forgery'
+    };
+  },
+
+  // =========================================================================
+  // Environment Tuning - "Artificial Gravity for AI"
+  // Adjust the feel of the space without changing the math
+  // =========================================================================
+
+  // Apply environment to a computation
+  applyEnvironment(value, env, dimension = 'semantic') {
+    const gravity = env.gravity[dimension] ?? 1.0;
+    const { viscosity, temperature, pressure } = env.atmosphere;
+
+    // Gravity affects magnitude
+    let result = value * gravity;
+
+    // Viscosity dampens changes
+    result = result * (1 - viscosity);
+
+    // Temperature scales energy
+    result = result * temperature;
+
+    // Pressure constrains to range
+    result = Math.max(-pressure, Math.min(pressure, result));
+
+    return result;
+  },
+
+  // Create mission context for AI operations
+  createMissionContext(missionId, secretKey, env = null) {
+    env = env || this.createEnvironment();
+
+    const missionHash = crypto.createHash('sha256')
+      .update(missionId + secretKey)
+      .digest();
+
+    // Derive mission-specific parameters from tesseract vertices
+    const missionParams = {};
+    for (const vertex of this.TESSERACT_VERTICES) {
+      const byteIdx = vertex.id % missionHash.length;
+      const normalized = missionHash[byteIdx] / 255;
+      missionParams[vertex.anchor] = normalized;
+    }
+
+    return {
+      missionId,
+      launched: Date.now(),
+      environment: env,
+      params: missionParams,
+      checkpoints: [],
+      status: 'ACTIVE',
+
+      // Record checkpoint
+      checkpoint(data) {
+        this.checkpoints.push({
+          index: this.checkpoints.length,
+          timestamp: Date.now(),
+          data,
+          plasmaValue: TesseractCore.plasmaticSurface(
+            data.theta || 0,
+            data.phi || 0,
+            0,
+            (Date.now() - this.launched) / 1000
+          )
+        });
+        return this.checkpoints.length - 1;
+      },
+
+      // Complete mission
+      complete(report) {
+        this.status = 'COMPLETE';
+        this.completed = Date.now();
+        this.duration = this.completed - this.launched;
+        this.report = report;
+        return this;
+      }
+    };
+  },
+
+  // =========================================================================
+  // Multi-Weighted Interconnection System
+  // Connect disjointed aspects through variable weighting
+  // =========================================================================
+
+  // Create a weighted connection between system aspects
+  createInterconnection(aspects, weights = null) {
+    // Default equal weights
+    if (!weights) {
+      weights = {};
+      for (const a of Object.keys(aspects)) {
+        weights[a] = 1.0 / Object.keys(aspects).length;
+      }
+    }
+
+    // Normalize weights to sum to 1
+    const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+    for (const k of Object.keys(weights)) {
+      weights[k] /= totalWeight;
+    }
+
+    return {
+      aspects,
+      weights,
+
+      // Compute weighted combination
+      compute() {
+        let result = 0;
+        for (const [key, value] of Object.entries(this.aspects)) {
+          const weight = this.weights[key] ?? 0;
+          const numValue = typeof value === 'number' ? value :
+                          typeof value === 'object' ? JSON.stringify(value).length / 100 :
+                          String(value).length / 100;
+          result += numValue * weight;
+        }
+        return result;
+      },
+
+      // Get dominant aspect
+      dominant() {
+        let maxWeight = 0;
+        let dominant = null;
+        for (const [key, weight] of Object.entries(this.weights)) {
+          if (weight > maxWeight) {
+            maxWeight = weight;
+            dominant = key;
+          }
+        }
+        return { aspect: dominant, weight: maxWeight };
+      },
+
+      // Rebalance weights
+      rebalance(adjustments) {
+        for (const [key, adj] of Object.entries(adjustments)) {
+          if (this.weights[key] !== undefined) {
+            this.weights[key] *= (1 + adj);
+          }
+        }
+        // Re-normalize
+        const total = Object.values(this.weights).reduce((a, b) => a + b, 0);
+        for (const k of Object.keys(this.weights)) {
+          this.weights[k] /= total;
+        }
+        return this;
+      }
+    };
+  },
+
+  // Get tesseract geometry info
+  getGeometry() {
+    return {
+      vertices: 16,
+      edges: 32,
+      faces: 24,  // 2D faces
+      cells: 8,   // 3D cells (cubes)
+      realms: {
+        physics: [0, 1, 2, 3],
+        mathematical: [4, 5, 6, 7],
+        geometric: [8, 9, 10, 11],
+        spiralverse: [12, 13, 14, 15]
+      },
+      constants: this.UNIVERSAL_CONSTANTS,
+      description: 'The 16 vertices anchor universal truth; state reads the same through any of the 8 cubic faces'
+    };
+  },
+
+  // =========================================================================
+  // Dimensional Analysis Reasoning Lattice
+  // Like physics - numbers carry units (dimensions) that constrain operations
+  // Supports negative numbers, exponentials, and dimensional consistency
+  // =========================================================================
+
+  // Base dimensions (SI-like) for dimensional analysis
+  DIMENSIONS: Object.freeze({
+    LENGTH: { symbol: 'L', siUnit: 'm' },
+    MASS: { symbol: 'M', siUnit: 'kg' },
+    TIME: { symbol: 'T', siUnit: 's' },
+    CURRENT: { symbol: 'I', siUnit: 'A' },
+    TEMPERATURE: { symbol: 'Θ', siUnit: 'K' },
+    AMOUNT: { symbol: 'N', siUnit: 'mol' },
+    LUMINOSITY: { symbol: 'J', siUnit: 'cd' },
+    // Extended for AI/semantic space
+    SEMANTIC: { symbol: 'S', siUnit: 'sem' },
+    INTENT: { symbol: 'Ψ', siUnit: 'int' },
+    TRUST: { symbol: 'Ω', siUnit: 'tru' }
+  }),
+
+  // Dimensional signature for universal constants
+  CONSTANT_DIMENSIONS: Object.freeze({
+    c: { L: 1, T: -1 },           // m/s
+    h: { M: 1, L: 2, T: -1 },     // J·s = kg·m²/s
+    G: { L: 3, M: -1, T: -2 },    // m³/(kg·s²)
+    e: { I: 1, T: 1 },            // A·s = C
+    pi: {},                       // dimensionless
+    tau: {},                      // dimensionless
+    phi: {},                      // dimensionless
+    euler: {},                    // dimensionless
+    sqrt2: {},                    // dimensionless
+    sqrt3: {},                    // dimensionless
+    sqrt5: {},                    // dimensionless
+    ln2: {},                      // dimensionless
+    torusR: { L: 1 },             // length (normalized)
+    torusR_r: { L: 1 },           // length (normalized)
+    manifoldDim: {},              // count (dimensionless)
+    tesseractVert: {}             // count (dimensionless)
+  }),
+
+  // Parse a number in any format (integer, float, negative, exponential)
+  parseNumber(input) {
+    if (typeof input === 'number') {
+      return { value: input, valid: Number.isFinite(input) };
+    }
+
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+
+      // Handle exponential notation: 1e-34, 6.62607015e-34, -3.5E+10
+      const expMatch = trimmed.match(/^([+-]?\d*\.?\d+)[eE]([+-]?\d+)$/);
+      if (expMatch) {
+        const mantissa = parseFloat(expMatch[1]);
+        const exponent = parseInt(expMatch[2], 10);
+        const value = mantissa * Math.pow(10, exponent);
+        return {
+          value,
+          valid: Number.isFinite(value),
+          parsed: { mantissa, exponent, notation: 'exponential' }
+        };
+      }
+
+      // Handle regular numbers (including negative)
+      const num = parseFloat(trimmed);
+      return {
+        value: num,
+        valid: Number.isFinite(num),
+        parsed: { notation: 'decimal' }
+      };
+    }
+
+    return { value: NaN, valid: false };
+  },
+
+  // Create a dimensioned quantity (number with units)
+  quantity(value, dimensions = {}) {
+    const parsed = this.parseNumber(value);
+    return {
+      value: parsed.value,
+      dimensions: { ...dimensions },
+      valid: parsed.valid,
+
+      // String representation
+      toString() {
+        const dimStr = Object.entries(this.dimensions)
+          .filter(([_, exp]) => exp !== 0)
+          .map(([dim, exp]) => exp === 1 ? dim : `${dim}^${exp}`)
+          .join('·') || 'dimensionless';
+        return `${this.value} [${dimStr}]`;
+      },
+
+      // Get dimensional signature
+      signature() {
+        return Object.entries(this.dimensions)
+          .filter(([_, exp]) => exp !== 0)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([dim, exp]) => `${dim}${exp}`)
+          .join('');
+      }
+    };
+  },
+
+  // Combine dimensions for multiplication
+  multiplyDimensions(dim1, dim2) {
+    const result = { ...dim1 };
+    for (const [key, exp] of Object.entries(dim2)) {
+      result[key] = (result[key] || 0) + exp;
+      if (result[key] === 0) delete result[key];
+    }
+    return result;
+  },
+
+  // Combine dimensions for division
+  divideDimensions(dim1, dim2) {
+    const result = { ...dim1 };
+    for (const [key, exp] of Object.entries(dim2)) {
+      result[key] = (result[key] || 0) - exp;
+      if (result[key] === 0) delete result[key];
+    }
+    return result;
+  },
+
+  // Check if two quantities have compatible dimensions
+  dimensionallyCompatible(q1, q2) {
+    const sig1 = Object.entries(q1.dimensions || {}).sort().map(e => e.join('')).join('');
+    const sig2 = Object.entries(q2.dimensions || {}).sort().map(e => e.join('')).join('');
+    return sig1 === sig2;
+  },
+
+  // Dimensional analysis for an expression
+  analyzeExpression(expression) {
+    const result = {
+      expression,
+      terms: [],
+      dimensionallyValid: true,
+      resultDimensions: null,
+      errors: []
+    };
+
+    // Parse simple expressions: "c * h / G"
+    const tokens = expression.split(/\s*([*/+-])\s*/).filter(t => t.trim());
+
+    let currentDim = null;
+    let operator = '*';
+
+    for (const token of tokens) {
+      if (['+', '-', '*', '/'].includes(token)) {
+        operator = token;
+        continue;
+      }
+
+      // Check if it's a universal constant
+      const constDim = this.CONSTANT_DIMENSIONS[token];
+      if (constDim !== undefined) {
+        const termDim = { ...constDim };
+        result.terms.push({
+          token,
+          value: this.UNIVERSAL_CONSTANTS[token],
+          dimensions: termDim
+        });
+
+        if (currentDim === null) {
+          currentDim = termDim;
+        } else {
+          if (operator === '*') {
+            currentDim = this.multiplyDimensions(currentDim, termDim);
+          } else if (operator === '/') {
+            currentDim = this.divideDimensions(currentDim, termDim);
+          } else if (operator === '+' || operator === '-') {
+            // Addition/subtraction requires same dimensions
+            if (!this.dimensionallyCompatible({ dimensions: currentDim }, { dimensions: termDim })) {
+              result.dimensionallyValid = false;
+              result.errors.push(`Cannot ${operator === '+' ? 'add' : 'subtract'} ${token} - incompatible dimensions`);
+            }
+          }
+        }
+      } else {
+        // Try parsing as a number
+        const parsed = this.parseNumber(token);
+        if (parsed.valid) {
+          result.terms.push({
+            token,
+            value: parsed.value,
+            dimensions: {}
+          });
+          // Numbers are dimensionless, only affect value not dimensions
+        } else {
+          result.errors.push(`Unknown token: ${token}`);
+        }
+      }
+    }
+
+    result.resultDimensions = currentDim || {};
+
+    // Format result dimension string
+    const dimStr = Object.entries(result.resultDimensions)
+      .filter(([_, exp]) => exp !== 0)
+      .map(([dim, exp]) => exp === 1 ? dim : `${dim}^${exp}`)
+      .join('·') || 'dimensionless';
+    result.resultDimensionString = dimStr;
+
+    return result;
+  },
+
+  // Create dimensional reasoning lattice connecting constants
+  createReasoningLattice() {
+    const lattice = {
+      nodes: [],
+      edges: [],
+      derivedQuantities: []
+    };
+
+    // Nodes are the universal constants with their dimensions
+    for (const [name, dims] of Object.entries(this.CONSTANT_DIMENSIONS)) {
+      lattice.nodes.push({
+        name,
+        value: this.UNIVERSAL_CONSTANTS[name],
+        dimensions: dims,
+        vertex: this.TESSERACT_VERTICES.find(v => v.anchor === name)
+      });
+    }
+
+    // Edges connect constants that can combine meaningfully
+    // (share at least one dimension or are both dimensionless)
+    for (let i = 0; i < lattice.nodes.length; i++) {
+      for (let j = i + 1; j < lattice.nodes.length; j++) {
+        const n1 = lattice.nodes[i];
+        const n2 = lattice.nodes[j];
+
+        const dims1 = Object.keys(n1.dimensions);
+        const dims2 = Object.keys(n2.dimensions);
+
+        // Both dimensionless - they can combine
+        if (dims1.length === 0 && dims2.length === 0) {
+          lattice.edges.push({
+            from: n1.name,
+            to: n2.name,
+            relation: 'mathematical',
+            combinable: true
+          });
+          continue;
+        }
+
+        // Share a dimension
+        const shared = dims1.filter(d => dims2.includes(d));
+        if (shared.length > 0) {
+          lattice.edges.push({
+            from: n1.name,
+            to: n2.name,
+            relation: 'physical',
+            sharedDimensions: shared,
+            combinable: true
+          });
+        }
+      }
+    }
+
+    // Derived quantities (famous combinations)
+    lattice.derivedQuantities = [
+      {
+        name: 'Planck length',
+        expression: 'sqrt(h * G / c^3)',
+        dimensions: { L: 1 },
+        value: Math.sqrt(this.UNIVERSAL_CONSTANTS.h * this.UNIVERSAL_CONSTANTS.G /
+                        Math.pow(this.UNIVERSAL_CONSTANTS.c, 3))
+      },
+      {
+        name: 'Planck time',
+        expression: 'sqrt(h * G / c^5)',
+        dimensions: { T: 1 },
+        value: Math.sqrt(this.UNIVERSAL_CONSTANTS.h * this.UNIVERSAL_CONSTANTS.G /
+                        Math.pow(this.UNIVERSAL_CONSTANTS.c, 5))
+      },
+      {
+        name: 'Planck mass',
+        expression: 'sqrt(h * c / G)',
+        dimensions: { M: 1 },
+        value: Math.sqrt(this.UNIVERSAL_CONSTANTS.h * this.UNIVERSAL_CONSTANTS.c /
+                        this.UNIVERSAL_CONSTANTS.G)
+      },
+      {
+        name: 'Fine structure constant',
+        expression: 'e^2 / (4 * pi * epsilon_0 * h * c)',
+        dimensions: {},  // dimensionless
+        value: 1 / 137.036  // approximately
+      },
+      {
+        name: 'Spiralverse unit',
+        expression: 'torusR * phi',
+        dimensions: { L: 1 },
+        value: this.UNIVERSAL_CONSTANTS.torusR * this.UNIVERSAL_CONSTANTS.phi
+      }
+    ];
+
+    return lattice;
+  },
+
+  // Validate a computation respects dimensional constraints
+  validateComputation(expression, expectedDimensions = null) {
+    const analysis = this.analyzeExpression(expression);
+
+    const result = {
+      expression,
+      analysis,
+      valid: analysis.dimensionallyValid,
+      errors: [...analysis.errors]
+    };
+
+    if (expectedDimensions !== null) {
+      const expected = Object.entries(expectedDimensions)
+        .filter(([_, exp]) => exp !== 0)
+        .sort()
+        .map(e => e.join(''))
+        .join('');
+      const actual = Object.entries(analysis.resultDimensions)
+        .filter(([_, exp]) => exp !== 0)
+        .sort()
+        .map(e => e.join(''))
+        .join('');
+
+      if (expected !== actual) {
+        result.valid = false;
+        result.errors.push(`Dimensional mismatch: expected ${expected || 'dimensionless'}, got ${actual || 'dimensionless'}`);
+      }
+    }
+
+    return result;
+  },
+
+  // Calculate a value from an expression involving constants
+  calculate(expression) {
+    const analysis = this.analyzeExpression(expression);
+    if (!analysis.dimensionallyValid) {
+      return {
+        error: 'Dimensionally invalid',
+        details: analysis.errors,
+        value: NaN
+      };
+    }
+
+    // Safe evaluation using only known constants
+    let result = 0;
+    let operator = null;
+
+    for (const term of analysis.terms) {
+      if (operator === null) {
+        result = term.value;
+      } else if (operator === '*') {
+        result *= term.value;
+      } else if (operator === '/') {
+        result /= term.value;
+      } else if (operator === '+') {
+        result += term.value;
+      } else if (operator === '-') {
+        result -= term.value;
+      }
+      operator = '*';  // Default to multiply for chained terms
+    }
+
+    return {
+      value: result,
+      dimensions: analysis.resultDimensions,
+      dimensionString: analysis.resultDimensionString,
+      terms: analysis.terms.map(t => t.token)
+    };
+  }
+});
+
+// ============================================================================
 // Neural Synthesizer - Hear the Thoughts of the Network
 // Maps 10D manifold state to audio synthesis parameters
 // The torus surface becomes a wavetable; curvature becomes wave folding
@@ -3640,6 +4394,206 @@ exports.handler = async (event) => {
       });
     }
 
+    // ========================================================================
+    // Tesseract Core Endpoints - 16 Vertices of Universal Truth
+    // MATH is immutable, VARIABLES are tunable (artificial gravity for AI)
+    // ========================================================================
+
+    // GET /tesseract - Get tesseract geometry and universal constants
+    if (method === 'GET' && path === '/tesseract') {
+      const geometry = TesseractCore.getGeometry();
+      return respond(200, {
+        ...geometry,
+        dimensions: TesseractCore.DIMENSIONS,
+        explanation: 'The 16 vertices anchor immutable MATH (universal constants). The 8 cells provide consistent state reading from any viewpoint.'
+      });
+    }
+
+    // GET /tesseract/constants - List all universal constants with dimensions
+    if (method === 'GET' && path === '/tesseract/constants') {
+      const constants = [];
+      for (const [name, value] of Object.entries(TesseractCore.UNIVERSAL_CONSTANTS)) {
+        const dims = TesseractCore.CONSTANT_DIMENSIONS[name];
+        const vertex = TesseractCore.TESSERACT_VERTICES.find(v => v.anchor === name);
+        constants.push({
+          name,
+          value,
+          dimensions: dims,
+          dimensionString: Object.entries(dims)
+            .filter(([_, exp]) => exp !== 0)
+            .map(([dim, exp]) => exp === 1 ? dim : `${dim}^${exp}`)
+            .join('·') || 'dimensionless',
+          vertex: vertex ? { id: vertex.id, coords: vertex.coords, realm: vertex.realm } : null
+        });
+      }
+      return respond(200, {
+        constants,
+        count: 16,
+        realms: ['physics', 'mathematical', 'geometric', 'spiralverse']
+      });
+    }
+
+    // POST /tesseract/parse - Parse a number (supports negative, exponential)
+    if (method === 'POST' && path === '/tesseract/parse') {
+      const { input, inputs } = body;
+
+      if (inputs && Array.isArray(inputs)) {
+        // Parse multiple numbers
+        const results = inputs.map(i => ({
+          input: i,
+          ...TesseractCore.parseNumber(i)
+        }));
+        return respond(200, { results });
+      }
+
+      if (input === undefined) {
+        return respond(400, { error: 'Required: input (number/string) or inputs (array)' });
+      }
+
+      const result = TesseractCore.parseNumber(input);
+      return respond(result.valid ? 200 : 400, { input, ...result });
+    }
+
+    // POST /tesseract/analyze - Dimensional analysis of an expression
+    if (method === 'POST' && path === '/tesseract/analyze') {
+      const { expression, expectedDimensions } = body;
+      if (!expression) {
+        return respond(400, { error: 'Required: expression (e.g., "c * h / G")' });
+      }
+
+      const analysis = expectedDimensions ?
+        TesseractCore.validateComputation(expression, expectedDimensions) :
+        TesseractCore.analyzeExpression(expression);
+
+      return respond(analysis.dimensionallyValid !== false ? 200 : 400, analysis);
+    }
+
+    // POST /tesseract/calculate - Calculate value with dimensional tracking
+    if (method === 'POST' && path === '/tesseract/calculate') {
+      const { expression } = body;
+      if (!expression) {
+        return respond(400, { error: 'Required: expression (e.g., "c * h")' });
+      }
+
+      const result = TesseractCore.calculate(expression);
+      return respond(result.error ? 400 : 200, result);
+    }
+
+    // GET /tesseract/lattice - Get dimensional reasoning lattice
+    if (method === 'GET' && path === '/tesseract/lattice') {
+      const lattice = TesseractCore.createReasoningLattice();
+      return respond(200, {
+        lattice,
+        description: 'Nodes are constants, edges connect dimensionally related quantities',
+        usage: 'Use edges to find valid combinations; derivedQuantities shows famous physics results'
+      });
+    }
+
+    // POST /tesseract/plasma - Sample plasmatic surface at coordinates
+    if (method === 'POST' && path === '/tesseract/plasma') {
+      const { x, y, z, t, seed, count } = body;
+
+      if (count && count > 1) {
+        // Generate multiple samples (for visualization)
+        const samples = [];
+        for (let i = 0; i < Math.min(count, 100); i++) {
+          const ti = (t || 0) + i * 0.1;
+          samples.push({
+            t: ti,
+            value: TesseractCore.plasmaticSurface(x || 0, y || 0, z || 0, ti, seed || 0)
+          });
+        }
+        return respond(200, { samples, coordinates: { x, y, z }, seed });
+      }
+
+      const value = TesseractCore.plasmaticSurface(
+        x || 0, y || 0, z || 0, t || 0, seed || 0
+      );
+      return respond(200, { value, coordinates: { x, y, z, t }, seed });
+    }
+
+    // POST /tesseract/tiger - Generate tiger stripe pattern
+    if (method === 'POST' && path === '/tesseract/tiger') {
+      const { theta, phi, t, secretKey } = body;
+      if (!secretKey) {
+        return respond(400, { error: 'Required: secretKey' });
+      }
+
+      const pattern = TesseractCore.tigerStripe(theta || 0, phi || 0, t || 0, secretKey);
+      return respond(200, {
+        pattern,
+        coordinates: { theta, phi, t },
+        explanation: 'Deterministic but chaotic-appearing stripe pattern for authentication'
+      });
+    }
+
+    // POST /tesseract/verify-state - Verify state consistency across all faces
+    if (method === 'POST' && path === '/tesseract/verify-state') {
+      const { state } = body;
+      if (state === undefined) {
+        return respond(400, { error: 'Required: state (number)' });
+      }
+
+      const result = TesseractCore.verifyStateConsistency(state);
+      return respond(result.consistent ? 200 : 403, result);
+    }
+
+    // POST /tesseract/environment - Create tunable environment
+    if (method === 'POST' && path === '/tesseract/environment') {
+      const env = TesseractCore.createEnvironment(body);
+      return respond(200, {
+        environment: env,
+        description: 'VARIABLES that tune the AI space (artificial gravity). MATH remains immutable.'
+      });
+    }
+
+    // POST /tesseract/mission - Create mission context for AI operations
+    if (method === 'POST' && path === '/tesseract/mission') {
+      const { missionId, secretKey, environment } = body;
+      if (!missionId || !secretKey) {
+        return respond(400, { error: 'Required: missionId, secretKey' });
+      }
+
+      const env = environment ? TesseractCore.createEnvironment(environment) : null;
+      const mission = TesseractCore.createMissionContext(missionId, secretKey, env);
+
+      // Return serializable version (without methods)
+      return respond(200, {
+        missionId: mission.missionId,
+        launched: mission.launched,
+        environment: mission.environment,
+        params: mission.params,
+        status: mission.status,
+        checkpointCount: 0,
+        usage: 'Store this context. Use /tesseract/checkpoint to record progress.'
+      });
+    }
+
+    // POST /tesseract/interconnect - Create weighted interconnection between aspects
+    if (method === 'POST' && path === '/tesseract/interconnect') {
+      const { aspects, weights } = body;
+      if (!aspects || typeof aspects !== 'object') {
+        return respond(400, { error: 'Required: aspects (object mapping names to values)' });
+      }
+
+      const interconnection = TesseractCore.createInterconnection(aspects, weights);
+      return respond(200, {
+        aspects: interconnection.aspects,
+        weights: interconnection.weights,
+        computedValue: interconnection.compute(),
+        dominant: interconnection.dominant()
+      });
+    }
+
+    // GET /tesseract/dimensions - Get base dimensions for dimensional analysis
+    if (method === 'GET' && path === '/tesseract/dimensions') {
+      return respond(200, {
+        baseDimensions: TesseractCore.DIMENSIONS,
+        constantDimensions: TesseractCore.CONSTANT_DIMENSIONS,
+        explanation: 'Like physics SI units - every quantity carries dimensions that constrain valid operations'
+      });
+    }
+
     return respond(404, {
       error: 'Not found',
       endpoints: [
@@ -3651,7 +4605,11 @@ exports.handler = async (event) => {
         '/ledger', '/ledger/write', '/ledger/audit', '/ledger/path',
         '/ledger/query', '/ledger/geodesic', '/ledger/zones', '/ledger/reset', '/ledger/hash',
         '/watermark/generate', '/watermark/verify', '/watermark/qr', '/watermark/qr/verify',
-        '/watermark/bandit', '/watermark/fingerprint'
+        '/watermark/bandit', '/watermark/fingerprint',
+        '/tesseract', '/tesseract/constants', '/tesseract/parse', '/tesseract/analyze',
+        '/tesseract/calculate', '/tesseract/lattice', '/tesseract/plasma', '/tesseract/tiger',
+        '/tesseract/verify-state', '/tesseract/environment', '/tesseract/mission',
+        '/tesseract/interconnect', '/tesseract/dimensions'
       ]
     });
   } catch (err) {
