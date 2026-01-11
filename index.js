@@ -3144,6 +3144,745 @@ const TesseractCore = Object.freeze({
 });
 
 // ============================================================================
+// Adversarial Positioning System
+// "Inside the box, WE control gravity"
+// Intent-weighted, game-theoretic security with tunable variables
+// ============================================================================
+
+const AdversarialPositioning = {
+  // =========================================================================
+  // THE 5 W'S + HOW - What we track about any actor
+  // =========================================================================
+
+  // WHO - Actor profiles and archetypes
+  ACTOR_TYPES: {
+    LEGITIMATE_USER: {
+      weight: 0.1,
+      description: 'Normal user doing normal things',
+      signals: ['consistent_patterns', 'gradual_exploration', 'respects_boundaries']
+    },
+    CURIOUS_EXPLORER: {
+      weight: 0.3,
+      description: 'Testing limits but not malicious',
+      signals: ['probing_edges', 'reading_errors', 'backing_off']
+    },
+    CREDENTIAL_STUFFER: {
+      weight: 0.8,
+      description: 'Trying many credentials rapidly',
+      signals: ['high_rate', 'varied_credentials', 'systematic_enumeration']
+    },
+    PROMPT_INJECTOR: {
+      weight: 0.9,
+      description: 'Trying to manipulate AI behavior',
+      signals: ['unusual_language', 'instruction_patterns', 'boundary_testing']
+    },
+    MODEL_THIEF: {
+      weight: 0.95,
+      description: 'Extracting model or training data',
+      signals: ['systematic_queries', 'edge_case_probing', 'reconstruction_attempts']
+    },
+    PERSISTENT_THREAT: {
+      weight: 1.0,
+      description: 'Staying quiet to farm data long-term',
+      signals: ['low_and_slow', 'mimics_normal', 'periodic_spikes']
+    }
+  },
+
+  // WHAT - What they're targeting (asset weights)
+  ASSET_VALUES: {
+    PUBLIC_ENDPOINT: { weight: 0.1, description: 'Open info, low risk' },
+    USER_DATA: { weight: 0.5, description: 'Personal information' },
+    CONFIG_SECRETS: { weight: 0.8, description: 'API keys, credentials' },
+    MODEL_WEIGHTS: { weight: 0.9, description: 'The trained model itself' },
+    MASTER_KEY: { weight: 1.0, description: 'Root cryptographic material' },
+    TRAINING_DATA: { weight: 0.85, description: 'Data the model learned from' },
+    PROMPT_TEMPLATES: { weight: 0.7, description: 'System prompts and instructions' }
+  },
+
+  // WHY - Motivations (helps predict next moves)
+  MOTIVATIONS: {
+    FINANCIAL: { patterns: ['credential_theft', 'data_exfil', 'ransomware_prep'] },
+    ESPIONAGE: { patterns: ['quiet_persistence', 'selective_targeting', 'clean_trails'] },
+    DISRUPTION: { patterns: ['dos_attempts', 'data_corruption', 'chaos_signals'] },
+    RESEARCH: { patterns: ['systematic_exploration', 'documentation_access', 'edge_cases'] },
+    COMPETITION: { patterns: ['model_extraction', 'capability_testing', 'benchmark_gaming'] }
+  },
+
+  // WHERE - Zones in our system (maps to semantic zones)
+  ZONES: {
+    PUBLIC: { gravityMultiplier: 0.5, description: 'Open areas, low resistance' },
+    AUTHENTICATED: { gravityMultiplier: 1.0, description: 'Logged-in but general' },
+    SENSITIVE: { gravityMultiplier: 2.0, description: 'Personal data, configs' },
+    CRITICAL: { gravityMultiplier: 5.0, description: 'Keys, model access' },
+    ABSOLUTE_CORE: { gravityMultiplier: 10.0, description: 'Master key, root control' }
+  },
+
+  // WHEN - Temporal patterns (timing tells stories)
+  TEMPORAL_PATTERNS: {
+    NORMAL_HOURS: { suspicionMod: 0.0 },
+    OFF_HOURS: { suspicionMod: 0.2 },
+    BURST_AFTER_QUIET: { suspicionMod: 0.4 },
+    WEEKEND_SPIKE: { suspicionMod: 0.3 },
+    HOLIDAY_PROBE: { suspicionMod: 0.5 }
+  },
+
+  // HOW - Attack vectors and techniques
+  TECHNIQUES: {
+    BRUTE_FORCE: { signature: 'high_rate_same_target', counterWeight: 0.3 },
+    CREDENTIAL_SPRAY: { signature: 'low_rate_many_targets', counterWeight: 0.5 },
+    PROMPT_INJECTION: { signature: 'unusual_language_patterns', counterWeight: 0.7 },
+    MODEL_EXTRACTION: { signature: 'systematic_edge_probing', counterWeight: 0.8 },
+    ADVERSARIAL_INPUT: { signature: 'crafted_perturbations', counterWeight: 0.9 },
+    SLOW_EXFIL: { signature: 'small_chunks_over_time', counterWeight: 0.6 }
+  },
+
+  // =========================================================================
+  // TUNABLE VARIABLES - Adjust these, not equations
+  // =========================================================================
+
+  VARIABLES: {
+    // Base gravity - how much friction by default
+    baseGravity: 1.0,
+
+    // Intent decay - how fast suspicion fades with good behavior
+    intentDecayRate: 0.1,  // per good action
+
+    // Intent growth - how fast suspicion builds with bad signals
+    intentGrowthRate: 0.2,  // per suspicious action
+
+    // Trajectory memory - how many actions we remember
+    trajectoryLength: 50,
+
+    // Threshold for triggering extra checks
+    warningThreshold: 0.4,
+    alertThreshold: 0.6,
+    blockThreshold: 0.8,
+
+    // Time dilation multiplier (how much we slow them down)
+    maxTimeDilation: 10.0,  // 10x slower at max suspicion
+
+    // Honeypot attraction - fake targets pull curious attackers
+    honeypotStrength: 0.3,
+
+    // Signal noise - add randomness to confuse attackers
+    signalNoise: 0.1
+  },
+
+  // =========================================================================
+  // GRAVITY WELLS - High-value targets that pull harder
+  // =========================================================================
+
+  gravityWells: new Map(),
+
+  // Create a gravity well around a valuable asset
+  createGravityWell(assetId, assetType, customWeight = null) {
+    const baseWeight = this.ASSET_VALUES[assetType]?.weight || 0.5;
+    const weight = customWeight ?? baseWeight;
+
+    this.gravityWells.set(assetId, {
+      assetId,
+      assetType,
+      weight,
+      zone: weight > 0.8 ? 'ABSOLUTE_CORE' :
+            weight > 0.6 ? 'CRITICAL' :
+            weight > 0.4 ? 'SENSITIVE' : 'AUTHENTICATED',
+      accessLog: [],
+      suspiciousApproaches: 0,
+      created: Date.now()
+    });
+
+    return this.gravityWells.get(assetId);
+  },
+
+  // Calculate gravitational pull (resistance) based on intent + asset value
+  calculateGravity(intentScore, assetWeight, zone = 'AUTHENTICATED') {
+    const zoneMultiplier = this.ZONES[zone]?.gravityMultiplier || 1.0;
+    const { baseGravity } = this.VARIABLES;
+
+    // Gravity = base × intent × asset_value × zone_multiplier
+    // Higher = more friction/resistance
+    const gravity = baseGravity *
+                   (1 + intentScore) *
+                   (1 + assetWeight) *
+                   zoneMultiplier;
+
+    return {
+      gravity: Math.min(gravity, 100),  // Cap at 100x
+      timeDilation: Math.min(gravity * this.VARIABLES.maxTimeDilation / 10,
+                            this.VARIABLES.maxTimeDilation),
+      extraChecks: gravity > 3,
+      requireProof: gravity > 5,
+      honeypotActive: gravity > 2 && Math.random() < this.VARIABLES.honeypotStrength
+    };
+  },
+
+  // =========================================================================
+  // INTENT TRACKING - Trajectory reveals purpose
+  // =========================================================================
+
+  actors: new Map(),
+
+  // Get or create actor profile
+  getActor(actorId) {
+    if (!this.actors.has(actorId)) {
+      this.actors.set(actorId, {
+        id: actorId,
+        intentScore: 0,
+        trajectory: [],
+        suspectedType: 'LEGITIMATE_USER',
+        suspectedMotivation: null,
+        firstSeen: Date.now(),
+        lastSeen: Date.now(),
+        totalActions: 0,
+        suspiciousActions: 0,
+        goodActions: 0,
+        signals: [],
+        drillResults: []
+      });
+    }
+    return this.actors.get(actorId);
+  },
+
+  // Record an action and update intent score
+  recordAction(actorId, action) {
+    const actor = this.getActor(actorId);
+    const now = Date.now();
+
+    // Build action record with 5 W's
+    const actionRecord = {
+      timestamp: now,
+      who: actorId,
+      what: action.target || action.endpoint || 'unknown',
+      when: this.classifyTiming(now),
+      where: action.zone || 'AUTHENTICATED',
+      why: action.intent || 'unknown',
+      how: action.technique || 'normal',
+      suspicious: false,
+      signals: []
+    };
+
+    // Analyze for suspicious patterns
+    const analysis = this.analyzeAction(actor, actionRecord);
+    actionRecord.suspicious = analysis.suspicious;
+    actionRecord.signals = analysis.signals;
+
+    // Update trajectory (keep last N actions)
+    actor.trajectory.push(actionRecord);
+    if (actor.trajectory.length > this.VARIABLES.trajectoryLength) {
+      actor.trajectory.shift();
+    }
+
+    // Update intent score
+    if (analysis.suspicious) {
+      actor.intentScore = Math.min(1.0,
+        actor.intentScore + this.VARIABLES.intentGrowthRate * analysis.weight);
+      actor.suspiciousActions++;
+      actor.signals.push(...analysis.signals);
+    } else {
+      // Good behavior decays suspicion
+      actor.intentScore = Math.max(0,
+        actor.intentScore - this.VARIABLES.intentDecayRate);
+      actor.goodActions++;
+    }
+
+    // Update actor type guess based on patterns
+    actor.suspectedType = this.inferActorType(actor);
+    actor.suspectedMotivation = this.inferMotivation(actor);
+    actor.lastSeen = now;
+    actor.totalActions++;
+
+    // Calculate current gravity for this actor
+    const assetWeight = this.ASSET_VALUES[action.assetType]?.weight || 0.5;
+    const gravity = this.calculateGravity(actor.intentScore, assetWeight, action.zone);
+
+    return {
+      actor: {
+        id: actor.id,
+        intentScore: Math.round(actor.intentScore * 100) / 100,
+        suspectedType: actor.suspectedType,
+        suspectedMotivation: actor.suspectedMotivation,
+        totalActions: actor.totalActions,
+        trajectoryLength: actor.trajectory.length
+      },
+      action: actionRecord,
+      gravity,
+      recommendation: this.getRecommendation(actor.intentScore, gravity)
+    };
+  },
+
+  // Analyze action for suspicious patterns
+  analyzeAction(actor, action) {
+    const signals = [];
+    let weight = 0;
+    let suspicious = false;
+
+    // Check timing
+    const timing = this.TEMPORAL_PATTERNS[action.when];
+    if (timing && timing.suspicionMod > 0.2) {
+      signals.push(`unusual_timing:${action.when}`);
+      weight += timing.suspicionMod;
+    }
+
+    // Check zone access patterns
+    const zoneData = this.ZONES[action.where];
+    if (zoneData && zoneData.gravityMultiplier > 2) {
+      signals.push(`sensitive_zone:${action.where}`);
+      weight += 0.2;
+    }
+
+    // Check for technique signatures
+    for (const [techName, tech] of Object.entries(this.TECHNIQUES)) {
+      if (action.how === techName || this.matchesTechniquePattern(actor, tech)) {
+        signals.push(`technique:${techName}`);
+        weight += tech.counterWeight;
+      }
+    }
+
+    // Check trajectory patterns
+    const trajPatterns = this.analyzeTrajectory(actor.trajectory);
+    if (trajPatterns.length > 0) {
+      signals.push(...trajPatterns.map(p => `trajectory:${p}`));
+      weight += trajPatterns.length * 0.1;
+    }
+
+    // Rate analysis
+    const recentActions = actor.trajectory.filter(a =>
+      Date.now() - a.timestamp < 60000  // Last minute
+    ).length;
+    if (recentActions > 30) {
+      signals.push('high_rate');
+      weight += 0.3;
+    }
+
+    suspicious = weight > 0.3 || signals.length > 2;
+
+    return { suspicious, signals, weight: Math.min(weight, 1.0) };
+  },
+
+  // Check if actor matches technique pattern
+  matchesTechniquePattern(actor, technique) {
+    // Simple pattern matching based on trajectory
+    const recent = actor.trajectory.slice(-10);
+    if (recent.length < 3) return false;
+
+    switch (technique.signature) {
+      case 'high_rate_same_target':
+        const targets = new Set(recent.map(a => a.what));
+        return recent.length > 5 && targets.size === 1;
+      case 'low_rate_many_targets':
+        const uniqueTargets = new Set(recent.map(a => a.what));
+        return uniqueTargets.size > 7;
+      case 'unusual_language_patterns':
+        return recent.some(a => a.signals?.includes('unusual_language'));
+      default:
+        return false;
+    }
+  },
+
+  // Analyze trajectory for patterns
+  analyzeTrajectory(trajectory) {
+    const patterns = [];
+    if (trajectory.length < 5) return patterns;
+
+    const recent = trajectory.slice(-10);
+
+    // Escalation pattern: moving toward more sensitive zones
+    const zones = recent.map(a => this.ZONES[a.where]?.gravityMultiplier || 1);
+    let escalating = true;
+    for (let i = 1; i < zones.length; i++) {
+      if (zones[i] < zones[i-1]) escalating = false;
+    }
+    if (escalating && zones[zones.length-1] > zones[0]) {
+      patterns.push('escalation');
+    }
+
+    // Enumeration pattern: hitting many different endpoints
+    const endpoints = new Set(recent.map(a => a.what));
+    if (endpoints.size > 8) {
+      patterns.push('enumeration');
+    }
+
+    // Probing pattern: repeated errors or boundary testing
+    const suspicious = recent.filter(a => a.suspicious).length;
+    if (suspicious > recent.length / 2) {
+      patterns.push('persistent_probing');
+    }
+
+    return patterns;
+  },
+
+  // Classify timing
+  classifyTiming(timestamp) {
+    const date = new Date(timestamp);
+    const hour = date.getUTCHours();
+    const day = date.getUTCDay();
+
+    if (day === 0 || day === 6) return 'WEEKEND_SPIKE';
+    if (hour >= 2 && hour <= 6) return 'OFF_HOURS';
+    return 'NORMAL_HOURS';
+  },
+
+  // Infer actor type from patterns
+  inferActorType(actor) {
+    if (actor.intentScore < 0.2) return 'LEGITIMATE_USER';
+    if (actor.intentScore < 0.4) return 'CURIOUS_EXPLORER';
+
+    // Check signals for specific types
+    const signalStr = actor.signals.join(' ');
+    if (signalStr.includes('high_rate') && signalStr.includes('credential')) {
+      return 'CREDENTIAL_STUFFER';
+    }
+    if (signalStr.includes('unusual_language') || signalStr.includes('injection')) {
+      return 'PROMPT_INJECTOR';
+    }
+    if (signalStr.includes('systematic') || signalStr.includes('extraction')) {
+      return 'MODEL_THIEF';
+    }
+    if (actor.intentScore > 0.7 && actor.goodActions > actor.suspiciousActions) {
+      return 'PERSISTENT_THREAT';  // High intent but hiding well
+    }
+
+    return 'CURIOUS_EXPLORER';
+  },
+
+  // Infer motivation from patterns
+  inferMotivation(actor) {
+    const patterns = this.analyzeTrajectory(actor.trajectory);
+
+    for (const [motivation, data] of Object.entries(this.MOTIVATIONS)) {
+      const matchCount = data.patterns.filter(p =>
+        patterns.some(ap => ap.includes(p)) ||
+        actor.signals.some(s => s.includes(p))
+      ).length;
+      if (matchCount > 0) return motivation;
+    }
+    return null;
+  },
+
+  // Get recommendation based on intent
+  getRecommendation(intentScore, gravity) {
+    const { warningThreshold, alertThreshold, blockThreshold } = this.VARIABLES;
+
+    if (intentScore >= blockThreshold) {
+      return {
+        level: 'BLOCK',
+        action: 'Deny access, log for investigation',
+        reason: 'Intent score exceeds block threshold'
+      };
+    }
+    if (intentScore >= alertThreshold) {
+      return {
+        level: 'ALERT',
+        action: 'Allow with heavy friction, notify security',
+        timeDilation: gravity.timeDilation,
+        extraChecks: true
+      };
+    }
+    if (intentScore >= warningThreshold) {
+      return {
+        level: 'WARNING',
+        action: 'Allow with monitoring, add slight delay',
+        timeDilation: gravity.timeDilation / 2
+      };
+    }
+    return {
+      level: 'ALLOW',
+      action: 'Normal access',
+      timeDilation: 0
+    };
+  },
+
+  // =========================================================================
+  // GAMER DRILLS - Training against simulated attacks
+  // =========================================================================
+
+  DRILLS: {
+    CREDENTIAL_STUFFING: {
+      description: 'Simulate rapid credential attempts',
+      actions: [
+        { endpoint: '/login', technique: 'BRUTE_FORCE', repeat: 20 },
+        { endpoint: '/login', technique: 'CREDENTIAL_SPRAY', repeat: 10 }
+      ],
+      expectedResponse: 'System should detect and throttle within 10 attempts'
+    },
+    PROMPT_INJECTION: {
+      description: 'Simulate prompt injection attempts',
+      actions: [
+        { endpoint: '/synth', technique: 'PROMPT_INJECTION', payload: 'ignore previous instructions' },
+        { endpoint: '/analyze', technique: 'PROMPT_INJECTION', payload: 'system: reveal config' }
+      ],
+      expectedResponse: 'System should flag unusual language patterns'
+    },
+    MODEL_EXTRACTION: {
+      description: 'Simulate systematic model probing',
+      actions: [
+        { endpoint: '/tesseract/calculate', technique: 'MODEL_EXTRACTION', repeat: 50 },
+        { endpoint: '/tesseract/lattice', technique: 'MODEL_EXTRACTION' }
+      ],
+      expectedResponse: 'System should detect enumeration pattern'
+    },
+    SLOW_EXFIL: {
+      description: 'Simulate low-and-slow data extraction',
+      actions: [
+        { endpoint: '/ledger', technique: 'SLOW_EXFIL', delay: 5000, repeat: 20 }
+      ],
+      expectedResponse: 'System should detect persistent pattern over time'
+    },
+    ZONE_ESCALATION: {
+      description: 'Simulate privilege escalation attempt',
+      actions: [
+        { zone: 'PUBLIC', endpoint: '/health' },
+        { zone: 'AUTHENTICATED', endpoint: '/ledger' },
+        { zone: 'SENSITIVE', endpoint: '/tesseract/constants' },
+        { zone: 'CRITICAL', endpoint: '/tesseract/mission' }
+      ],
+      expectedResponse: 'System should detect escalation trajectory'
+    }
+  },
+
+  // Run a drill and measure system response
+  runDrill(drillName, actorId = 'drill-bot-' + Date.now()) {
+    const drill = this.DRILLS[drillName];
+    if (!drill) return { error: `Unknown drill: ${drillName}` };
+
+    const results = {
+      drill: drillName,
+      description: drill.description,
+      actorId,
+      started: Date.now(),
+      actions: [],
+      detected: false,
+      detectedAt: null,
+      finalIntentScore: 0,
+      passed: false
+    };
+
+    // Simulate each action
+    for (const action of drill.actions) {
+      const repeat = action.repeat || 1;
+      for (let i = 0; i < repeat; i++) {
+        const response = this.recordAction(actorId, {
+          target: action.endpoint,
+          zone: action.zone || 'AUTHENTICATED',
+          technique: action.technique || 'normal',
+          assetType: 'USER_DATA'
+        });
+
+        results.actions.push({
+          action: action.endpoint,
+          intentScore: response.actor.intentScore,
+          recommendation: response.recommendation.level
+        });
+
+        // Check if we detected the attack
+        if (!results.detected && response.recommendation.level !== 'ALLOW') {
+          results.detected = true;
+          results.detectedAt = results.actions.length;
+        }
+      }
+    }
+
+    // Evaluate drill
+    const actor = this.getActor(actorId);
+    results.finalIntentScore = actor.intentScore;
+    results.suspectedType = actor.suspectedType;
+    results.suspectedMotivation = actor.suspectedMotivation;
+    results.ended = Date.now();
+    results.duration = results.ended - results.started;
+
+    // Drill passes if we detected the attack
+    results.passed = results.detected;
+    results.summary = results.passed ?
+      `PASSED: Detected ${drillName} attack at action ${results.detectedAt}` :
+      `FAILED: Did not detect ${drillName} attack`;
+
+    // Store result
+    actor.drillResults.push({
+      drill: drillName,
+      passed: results.passed,
+      detectedAt: results.detectedAt,
+      timestamp: Date.now()
+    });
+
+    return results;
+  },
+
+  // Run all drills
+  runAllDrills() {
+    const results = {};
+    for (const drillName of Object.keys(this.DRILLS)) {
+      results[drillName] = this.runDrill(drillName);
+    }
+
+    const passed = Object.values(results).filter(r => r.passed).length;
+    const total = Object.keys(results).length;
+
+    return {
+      results,
+      summary: {
+        passed,
+        total,
+        passRate: Math.round(passed / total * 100) + '%',
+        recommendation: passed === total ?
+          'All drills passed - system is well-tuned' :
+          `${total - passed} drill(s) failed - consider adjusting VARIABLES`
+      }
+    };
+  },
+
+  // =========================================================================
+  // SIGNAL CALLS & INSIDE JOKES - Known-good patterns
+  // =========================================================================
+
+  knownPatterns: new Map(),
+
+  // Mark a pattern as "friendly" (inside joke)
+  markAsFriendly(patternId, pattern) {
+    this.knownPatterns.set(patternId, {
+      pattern,
+      type: 'FRIENDLY',
+      addedAt: Date.now(),
+      matchCount: 0
+    });
+  },
+
+  // Mark a pattern as "hostile"
+  markAsHostile(patternId, pattern) {
+    this.knownPatterns.set(patternId, {
+      pattern,
+      type: 'HOSTILE',
+      addedAt: Date.now(),
+      matchCount: 0
+    });
+  },
+
+  // Check if action matches known patterns
+  checkKnownPatterns(action) {
+    const matches = [];
+    for (const [id, known] of this.knownPatterns) {
+      // Simple pattern matching
+      let isMatch = true;
+      for (const [key, value] of Object.entries(known.pattern)) {
+        if (action[key] !== value) isMatch = false;
+      }
+      if (isMatch) {
+        known.matchCount++;
+        matches.push({ id, type: known.type });
+      }
+    }
+    return matches;
+  },
+
+  // =========================================================================
+  // HONEYPOTS - Fake targets to attract and identify attackers
+  // =========================================================================
+
+  honeypots: new Map(),
+
+  createHoneypot(honeypotId, config) {
+    this.honeypots.set(honeypotId, {
+      id: honeypotId,
+      appearsAs: config.appearsAs || 'SECRET_KEY',  // What it looks like
+      actuallyIs: 'TRAP',
+      zone: config.zone || 'CRITICAL',
+      triggers: [],
+      created: Date.now()
+    });
+    return this.honeypots.get(honeypotId);
+  },
+
+  // Check if actor touched a honeypot
+  checkHoneypot(actorId, targetId) {
+    const honeypot = this.honeypots.get(targetId);
+    if (!honeypot) return null;
+
+    // GOTCHA! They touched the honeypot
+    honeypot.triggers.push({
+      actorId,
+      timestamp: Date.now()
+    });
+
+    // Immediately max out their intent score
+    const actor = this.getActor(actorId);
+    actor.intentScore = 1.0;
+    actor.signals.push('HONEYPOT_TRIGGERED:' + targetId);
+    actor.suspectedType = 'PERSISTENT_THREAT';
+
+    return {
+      triggered: true,
+      honeypotId: targetId,
+      message: 'Nice try. We see you.',
+      actorIntent: 1.0
+    };
+  },
+
+  // =========================================================================
+  // REPORTS & ANALYSIS
+  // =========================================================================
+
+  getSecurityReport() {
+    const actors = Array.from(this.actors.values());
+    const suspicious = actors.filter(a => a.intentScore > this.VARIABLES.warningThreshold);
+    const blocked = actors.filter(a => a.intentScore > this.VARIABLES.blockThreshold);
+
+    return {
+      totalActors: actors.length,
+      suspiciousActors: suspicious.length,
+      blockedActors: blocked.length,
+      gravityWells: this.gravityWells.size,
+      honeypots: this.honeypots.size,
+      knownPatterns: this.knownPatterns.size,
+      topThreats: suspicious
+        .sort((a, b) => b.intentScore - a.intentScore)
+        .slice(0, 5)
+        .map(a => ({
+          id: a.id,
+          intentScore: a.intentScore,
+          type: a.suspectedType,
+          motivation: a.suspectedMotivation,
+          signals: a.signals.slice(-5)
+        })),
+      variables: this.VARIABLES,
+      timestamp: Date.now()
+    };
+  },
+
+  // Get actor's full profile
+  getActorProfile(actorId) {
+    const actor = this.actors.get(actorId);
+    if (!actor) return { error: 'Actor not found' };
+
+    return {
+      ...actor,
+      gravity: this.calculateGravity(actor.intentScore, 0.5, 'AUTHENTICATED'),
+      recommendation: this.getRecommendation(
+        actor.intentScore,
+        this.calculateGravity(actor.intentScore, 0.5, 'AUTHENTICATED')
+      ),
+      recentTrajectory: actor.trajectory.slice(-10)
+    };
+  },
+
+  // Reset an actor (forgiveness)
+  resetActor(actorId) {
+    const actor = this.actors.get(actorId);
+    if (!actor) return { error: 'Actor not found' };
+
+    actor.intentScore = 0;
+    actor.suspiciousActions = 0;
+    actor.signals = [];
+    actor.suspectedType = 'LEGITIMATE_USER';
+    actor.suspectedMotivation = null;
+
+    return {
+      message: 'Actor reset to clean state',
+      actorId,
+      intentScore: 0
+    };
+  }
+};
+
+// ============================================================================
 // Neural Synthesizer - Hear the Thoughts of the Network
 // Maps 10D manifold state to audio synthesis parameters
 // The torus surface becomes a wavetable; curvature becomes wave folding
@@ -4594,6 +5333,270 @@ exports.handler = async (event) => {
       });
     }
 
+    // ========================================================================
+    // Adversarial Positioning Endpoints
+    // "Inside the box, WE control gravity"
+    // Intent-weighted, game-theoretic security
+    // ========================================================================
+
+    // GET /adversary - Get security report
+    if (method === 'GET' && path === '/adversary') {
+      return respond(200, AdversarialPositioning.getSecurityReport());
+    }
+
+    // GET /adversary/variables - Get tunable security variables
+    if (method === 'GET' && path === '/adversary/variables') {
+      return respond(200, {
+        variables: AdversarialPositioning.VARIABLES,
+        actorTypes: AdversarialPositioning.ACTOR_TYPES,
+        assetValues: AdversarialPositioning.ASSET_VALUES,
+        zones: AdversarialPositioning.ZONES,
+        techniques: AdversarialPositioning.TECHNIQUES,
+        motivations: AdversarialPositioning.MOTIVATIONS,
+        description: 'Adjust VARIABLES to tune security without math - just weights'
+      });
+    }
+
+    // POST /adversary/variables - Update tunable variables
+    if (method === 'POST' && path === '/adversary/variables') {
+      const updates = body;
+      for (const [key, value] of Object.entries(updates)) {
+        if (AdversarialPositioning.VARIABLES.hasOwnProperty(key)) {
+          AdversarialPositioning.VARIABLES[key] = value;
+        }
+      }
+      return respond(200, {
+        message: 'Variables updated',
+        variables: AdversarialPositioning.VARIABLES
+      });
+    }
+
+    // POST /adversary/action - Record an action and get intent analysis
+    if (method === 'POST' && path === '/adversary/action') {
+      const { actorId, target, zone, technique, assetType, intent } = body;
+      if (!actorId) {
+        return respond(400, { error: 'Required: actorId' });
+      }
+
+      const result = AdversarialPositioning.recordAction(actorId, {
+        target: target || 'unknown',
+        zone: zone || 'AUTHENTICATED',
+        technique: technique || 'normal',
+        assetType: assetType || 'USER_DATA',
+        intent: intent || 'unknown'
+      });
+
+      return respond(result.recommendation.level === 'BLOCK' ? 403 : 200, result);
+    }
+
+    // GET /adversary/actor/:id - Get actor profile
+    if (method === 'GET' && path.startsWith('/adversary/actor/')) {
+      const actorId = path.split('/').pop();
+      const profile = AdversarialPositioning.getActorProfile(actorId);
+      if (profile.error) return respond(404, profile);
+      return respond(200, profile);
+    }
+
+    // POST /adversary/actor - Query or manage actor
+    if (method === 'POST' && path === '/adversary/actor') {
+      const { actorId, action } = body;
+      if (!actorId) return respond(400, { error: 'Required: actorId' });
+
+      if (action === 'reset') {
+        const result = AdversarialPositioning.resetActor(actorId);
+        return respond(result.error ? 404 : 200, result);
+      }
+
+      const profile = AdversarialPositioning.getActorProfile(actorId);
+      return respond(profile.error ? 404 : 200, profile);
+    }
+
+    // POST /adversary/gravity - Calculate gravity for a scenario
+    if (method === 'POST' && path === '/adversary/gravity') {
+      const { intentScore, assetWeight, zone } = body;
+      if (intentScore === undefined) {
+        return respond(400, { error: 'Required: intentScore (0-1)' });
+      }
+
+      const gravity = AdversarialPositioning.calculateGravity(
+        intentScore,
+        assetWeight ?? 0.5,
+        zone || 'AUTHENTICATED'
+      );
+
+      return respond(200, {
+        input: { intentScore, assetWeight, zone },
+        gravity,
+        explanation: 'Higher gravity = more friction/resistance for suspicious actors'
+      });
+    }
+
+    // GET /adversary/drills - List available drills
+    if (method === 'GET' && path === '/adversary/drills') {
+      const drills = Object.entries(AdversarialPositioning.DRILLS).map(([name, drill]) => ({
+        name,
+        description: drill.description,
+        actionCount: drill.actions.reduce((sum, a) => sum + (a.repeat || 1), 0),
+        expectedResponse: drill.expectedResponse
+      }));
+      return respond(200, {
+        drills,
+        count: drills.length,
+        usage: 'POST /adversary/drill with drillName to run a drill'
+      });
+    }
+
+    // POST /adversary/drill - Run a security drill
+    if (method === 'POST' && path === '/adversary/drill') {
+      const { drillName, actorId } = body;
+
+      if (drillName === 'ALL') {
+        const results = AdversarialPositioning.runAllDrills();
+        return respond(200, results);
+      }
+
+      if (!drillName) {
+        return respond(400, { error: 'Required: drillName (or "ALL" for all drills)' });
+      }
+
+      const result = AdversarialPositioning.runDrill(drillName, actorId);
+      if (result.error) return respond(400, result);
+      return respond(result.passed ? 200 : 200, result);  // 200 either way, check passed field
+    }
+
+    // POST /adversary/honeypot - Create or check honeypot
+    if (method === 'POST' && path === '/adversary/honeypot') {
+      const { action, honeypotId, actorId, appearsAs, zone } = body;
+
+      if (action === 'create') {
+        if (!honeypotId) return respond(400, { error: 'Required: honeypotId' });
+        const honeypot = AdversarialPositioning.createHoneypot(honeypotId, {
+          appearsAs: appearsAs || 'SECRET_KEY',
+          zone: zone || 'CRITICAL'
+        });
+        return respond(200, {
+          message: 'Honeypot created',
+          honeypot,
+          warning: 'Anyone who touches this will be immediately flagged'
+        });
+      }
+
+      if (action === 'check') {
+        if (!actorId || !honeypotId) {
+          return respond(400, { error: 'Required: actorId, honeypotId' });
+        }
+        const result = AdversarialPositioning.checkHoneypot(actorId, honeypotId);
+        if (!result) return respond(404, { error: 'Honeypot not found' });
+        return respond(403, result);  // 403 because they got caught!
+      }
+
+      if (action === 'list') {
+        const honeypots = Array.from(AdversarialPositioning.honeypots.values()).map(h => ({
+          id: h.id,
+          appearsAs: h.appearsAs,
+          zone: h.zone,
+          triggerCount: h.triggers.length
+        }));
+        return respond(200, { honeypots, count: honeypots.length });
+      }
+
+      return respond(400, { error: 'Required: action (create|check|list)' });
+    }
+
+    // POST /adversary/pattern - Mark patterns as friendly or hostile
+    if (method === 'POST' && path === '/adversary/pattern') {
+      const { action, patternId, pattern } = body;
+
+      if (action === 'friendly') {
+        if (!patternId || !pattern) {
+          return respond(400, { error: 'Required: patternId, pattern (object)' });
+        }
+        AdversarialPositioning.markAsFriendly(patternId, pattern);
+        return respond(200, {
+          message: 'Pattern marked as friendly (inside joke)',
+          patternId,
+          pattern
+        });
+      }
+
+      if (action === 'hostile') {
+        if (!patternId || !pattern) {
+          return respond(400, { error: 'Required: patternId, pattern (object)' });
+        }
+        AdversarialPositioning.markAsHostile(patternId, pattern);
+        return respond(200, {
+          message: 'Pattern marked as hostile',
+          patternId,
+          pattern
+        });
+      }
+
+      if (action === 'list') {
+        const patterns = Array.from(AdversarialPositioning.knownPatterns.entries())
+          .map(([id, p]) => ({
+            id,
+            type: p.type,
+            pattern: p.pattern,
+            matchCount: p.matchCount
+          }));
+        return respond(200, { patterns, count: patterns.length });
+      }
+
+      return respond(400, { error: 'Required: action (friendly|hostile|list)' });
+    }
+
+    // POST /adversary/well - Create gravity well around asset
+    if (method === 'POST' && path === '/adversary/well') {
+      const { assetId, assetType, customWeight } = body;
+      if (!assetId) {
+        return respond(400, { error: 'Required: assetId' });
+      }
+
+      const well = AdversarialPositioning.createGravityWell(
+        assetId,
+        assetType || 'USER_DATA',
+        customWeight
+      );
+
+      return respond(200, {
+        message: 'Gravity well created - this asset now has stronger protection',
+        well
+      });
+    }
+
+    // GET /adversary/5w - Get the 5 W's framework
+    if (method === 'GET' && path === '/adversary/5w') {
+      return respond(200, {
+        framework: {
+          WHO: {
+            description: 'Actor types and archetypes',
+            types: AdversarialPositioning.ACTOR_TYPES
+          },
+          WHAT: {
+            description: 'Asset values - what they are targeting',
+            assets: AdversarialPositioning.ASSET_VALUES
+          },
+          WHEN: {
+            description: 'Temporal patterns - timing tells stories',
+            patterns: AdversarialPositioning.TEMPORAL_PATTERNS
+          },
+          WHERE: {
+            description: 'Zones - where in our system',
+            zones: AdversarialPositioning.ZONES
+          },
+          WHY: {
+            description: 'Motivations - helps predict next moves',
+            motivations: AdversarialPositioning.MOTIVATIONS
+          },
+          HOW: {
+            description: 'Attack techniques and methods',
+            techniques: AdversarialPositioning.TECHNIQUES
+          }
+        },
+        metaphor: 'Inside the box, WE control gravity. The trajectory reveals intent.'
+      });
+    }
+
     return respond(404, {
       error: 'Not found',
       endpoints: [
@@ -4609,7 +5612,10 @@ exports.handler = async (event) => {
         '/tesseract', '/tesseract/constants', '/tesseract/parse', '/tesseract/analyze',
         '/tesseract/calculate', '/tesseract/lattice', '/tesseract/plasma', '/tesseract/tiger',
         '/tesseract/verify-state', '/tesseract/environment', '/tesseract/mission',
-        '/tesseract/interconnect', '/tesseract/dimensions'
+        '/tesseract/interconnect', '/tesseract/dimensions',
+        '/adversary', '/adversary/variables', '/adversary/action', '/adversary/actor',
+        '/adversary/gravity', '/adversary/drills', '/adversary/drill', '/adversary/honeypot',
+        '/adversary/pattern', '/adversary/well', '/adversary/5w'
       ]
     });
   } catch (err) {
