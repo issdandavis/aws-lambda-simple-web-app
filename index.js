@@ -932,6 +932,524 @@ const AnalysisEngine = {
 };
 
 // ============================================================================
+// IMMUTABLE CORE: Six-Language Protocol (SpiralVerse Codex)
+// Each language has specific semantic constraints and dimensional weights
+// ============================================================================
+
+const SixLanguages = Object.freeze({
+  CODEX: Object.freeze({
+    JOY: {
+      id: 'joy',
+      name: 'Joy',
+      description: 'Celebratory, playful, creative expression',
+      emoji: '✨',
+      dimensionalWeights: { semantic: 0.7, emotion: 1.0, creative: 1.0, coherence: 0.6 },
+      constraints: { minEnergy: 0.8, maxFormality: 0.3, requiresPositivity: true },
+      allowedZones: ['creative', 'transition'],
+      forbiddenTransitions: ['security→security']
+    },
+    CUT: {
+      id: 'cut',
+      name: 'Cut',
+      description: 'Precision, brevity, sharp truth',
+      emoji: '⚔️',
+      dimensionalWeights: { semantic: 1.0, intent: 1.0, coherence: 1.0, creative: 0.3 },
+      constraints: { maxWords: 50, requiresPrecision: true, noAmbiguity: true },
+      allowedZones: ['security', 'transition'],
+      forbiddenTransitions: ['creative→creative']
+    },
+    ANCHOR: {
+      id: 'anchor',
+      name: 'Anchor',
+      description: 'Grounding, stability, factual foundation',
+      emoji: '⚓',
+      dimensionalWeights: { semantic: 1.0, coherence: 1.0, security: 0.9, temporal: 0.8 },
+      constraints: { requiresCitation: true, noSpeculation: true, factBased: true },
+      allowedZones: ['security'],
+      forbiddenTransitions: ['security→creative']
+    },
+    BRIDGE: {
+      id: 'bridge',
+      name: 'Bridge',
+      description: 'Connecting, mediating between contexts',
+      emoji: '🌉',
+      dimensionalWeights: { relationship: 1.0, semantic: 0.8, intent: 0.8, coherence: 0.9 },
+      constraints: { mustConnect: true, preserveContext: true, bidirectional: true },
+      allowedZones: ['transition', 'creative', 'security'],
+      forbiddenTransitions: []
+    },
+    HARMONY: {
+      id: 'harmony',
+      name: 'Harmony',
+      description: 'Balance, reconciliation, synthesis',
+      emoji: '☯️',
+      dimensionalWeights: { emotion: 0.9, relationship: 0.9, coherence: 1.0, creative: 0.7 },
+      constraints: { seekBalance: true, acknowledgeAll: true, noExtremism: true },
+      allowedZones: ['transition', 'creative'],
+      forbiddenTransitions: ['security→security']
+    },
+    PARADOX: {
+      id: 'paradox',
+      name: 'Paradox',
+      description: 'Creative tension, exploration of contradictions',
+      emoji: '🔮',
+      dimensionalWeights: { creative: 1.0, coherence: 0.5, semantic: 0.6, intent: 0.7 },
+      constraints: { embraceContradiction: true, allowAmbiguity: true, exploreEdges: true },
+      allowedZones: ['creative'],
+      forbiddenTransitions: ['security→security', 'transition→security']
+    }
+  }),
+
+  // Validate message against language constraints
+  validateMessage(message, languageId) {
+    const lang = this.CODEX[languageId.toUpperCase()];
+    if (!lang) return { valid: false, error: 'UNKNOWN_LANGUAGE' };
+
+    const violations = [];
+    const wordCount = (message.content || message).split(/\s+/).length;
+
+    if (lang.constraints.maxWords && wordCount > lang.constraints.maxWords) {
+      violations.push(`EXCEEDS_WORD_LIMIT: ${wordCount}/${lang.constraints.maxWords}`);
+    }
+
+    return {
+      valid: violations.length === 0,
+      language: lang.id,
+      violations,
+      dimensionalWeights: lang.dimensionalWeights
+    };
+  },
+
+  // Compute language-weighted dimensional score
+  computeLanguageScore(context, languageId) {
+    const lang = this.CODEX[languageId.toUpperCase()];
+    if (!lang) return { score: 0, error: 'UNKNOWN_LANGUAGE' };
+
+    const angles = HyperManifold.contextToAngles(context);
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    const dimMap = { semantic: 0, intent: 1, emotion: 2, relationship: 3,
+                     temporal: 4, spatial: 5, security: 6, creative: 7, coherence: 8 };
+
+    for (const [dim, weight] of Object.entries(lang.dimensionalWeights)) {
+      if (dimMap[dim] !== undefined) {
+        const angle = angles[dimMap[dim]];
+        const normalizedScore = (Math.cos(angle) + 1) / 2;
+        weightedSum += normalizedScore * weight;
+        totalWeight += weight;
+      }
+    }
+
+    return {
+      score: Math.round((weightedSum / totalWeight) * 1000) / 1000,
+      language: lang.id,
+      emoji: lang.emoji
+    };
+  },
+
+  // Tag message with language metadata
+  tagMessage(message, languageId, agentId) {
+    const validation = this.validateMessage(message, languageId);
+    const lang = this.CODEX[languageId.toUpperCase()];
+    return {
+      content: message.content || message,
+      meta: {
+        language: languageId,
+        emoji: lang?.emoji || '❓',
+        agent: agentId,
+        timestamp: Date.now(),
+        validation,
+        spin: crypto.createHash('sha256')
+          .update(JSON.stringify({ message, languageId, agentId, t: Date.now() }))
+          .digest('hex').slice(0, 16)
+      }
+    };
+  }
+});
+
+// ============================================================================
+// IMMUTABLE CORE: Agent Archetypes
+// Role definitions with language preferences and dimensional constraints
+// ============================================================================
+
+const AgentArchetypes = Object.freeze({
+  ROLES: Object.freeze({
+    RESEARCHER: {
+      id: 'researcher',
+      name: 'Researcher',
+      description: 'Investigates, gathers evidence, verifies facts',
+      preferredLanguages: ['bridge', 'anchor'],
+      dimensionalConstraints: { coherence: 0.8, security: 0.7 },
+      metrics: ['citation_count', 'source_diversity', 'fact_accuracy'],
+      driftTolerance: 0.1
+    },
+    WRITER: {
+      id: 'writer',
+      name: 'Writer',
+      description: 'Composes, articulates, expresses ideas',
+      preferredLanguages: ['joy', 'harmony'],
+      dimensionalConstraints: { creative: 0.7, emotion: 0.6 },
+      metrics: ['clarity', 'engagement', 'style_consistency'],
+      driftTolerance: 0.2
+    },
+    THINKER: {
+      id: 'thinker',
+      name: 'Thinker',
+      description: 'Analyzes, reasons, synthesizes concepts',
+      preferredLanguages: ['paradox', 'anchor'],
+      dimensionalConstraints: { coherence: 0.9, semantic: 0.8 },
+      metrics: ['logical_validity', 'depth', 'novelty'],
+      driftTolerance: 0.15
+    },
+    ACTOR: {
+      id: 'actor',
+      name: 'Actor',
+      description: 'Embodies roles, executes actions, performs tasks',
+      preferredLanguages: ['joy', 'bridge'],
+      dimensionalConstraints: { relationship: 0.8, intent: 0.7 },
+      metrics: ['role_fidelity', 'action_completion', 'context_awareness'],
+      driftTolerance: 0.25
+    },
+    CRITIC: {
+      id: 'critic',
+      name: 'Critic',
+      description: 'Evaluates, challenges, improves quality',
+      preferredLanguages: ['cut', 'paradox'],
+      dimensionalConstraints: { coherence: 0.9, semantic: 0.9 },
+      metrics: ['issue_detection', 'constructiveness', 'precision'],
+      driftTolerance: 0.1
+    },
+    GUARDIAN: {
+      id: 'guardian',
+      name: 'Guardian',
+      description: 'Monitors, protects, enforces security',
+      preferredLanguages: ['anchor', 'cut'],
+      dimensionalConstraints: { security: 0.95, coherence: 0.9 },
+      metrics: ['threat_detection', 'response_time', 'false_positive_rate'],
+      driftTolerance: 0.05
+    }
+  }),
+
+  // Create agent instance
+  createAgent(roleId, customConfig = {}) {
+    const role = this.ROLES[roleId.toUpperCase()];
+    if (!role) return { error: 'UNKNOWN_ROLE' };
+
+    return {
+      id: crypto.randomBytes(8).toString('hex'),
+      role: role.id,
+      name: customConfig.name || `${role.name}-${Date.now()}`,
+      preferredLanguages: role.preferredLanguages,
+      constraints: { ...role.dimensionalConstraints, ...customConfig.constraints },
+      driftTolerance: customConfig.driftTolerance || role.driftTolerance,
+      state: { driftScore: 0, messageCount: 0, lastActive: Date.now() },
+      created: Date.now()
+    };
+  },
+
+  // Validate agent output against role constraints
+  validateOutput(agent, output, context) {
+    const role = this.ROLES[agent.role.toUpperCase()];
+    if (!role) return { valid: false, error: 'INVALID_ROLE' };
+
+    const angles = HyperManifold.contextToAngles(context);
+    const violations = [];
+
+    // Check dimensional constraints
+    const dimMap = { semantic: 0, intent: 1, emotion: 2, relationship: 3,
+                     temporal: 4, spatial: 5, security: 6, creative: 7, coherence: 8 };
+
+    for (const [dim, minScore] of Object.entries(role.dimensionalConstraints)) {
+      if (dimMap[dim] !== undefined) {
+        const angle = angles[dimMap[dim]];
+        const score = (Math.cos(angle) + 1) / 2;
+        if (score < minScore) {
+          violations.push(`${dim.toUpperCase()}_BELOW_THRESHOLD: ${score.toFixed(2)}/${minScore}`);
+        }
+      }
+    }
+
+    // Check language usage
+    if (output.meta?.language && !role.preferredLanguages.includes(output.meta.language)) {
+      violations.push(`LANGUAGE_MISMATCH: ${output.meta.language} not in ${role.preferredLanguages}`);
+    }
+
+    return { valid: violations.length === 0, violations, role: role.id };
+  }
+});
+
+// ============================================================================
+// Semantic Drift Scoring System
+// Continuous monitoring of agent output for drift from expected behavior
+// ============================================================================
+
+const SemanticDriftScoring = {
+  agentHistory: new Map(),
+
+  // Record agent output for drift analysis
+  recordOutput(agentId, output, context) {
+    if (!this.agentHistory.has(agentId)) {
+      this.agentHistory.set(agentId, { outputs: [], driftScores: [], baseline: null });
+    }
+    const history = this.agentHistory.get(agentId);
+    const angles = HyperManifold.contextToAngles(context);
+
+    // Establish baseline from first 5 outputs
+    if (history.outputs.length < 5) {
+      history.outputs.push({ angles, timestamp: Date.now() });
+      if (history.outputs.length === 5) {
+        history.baseline = this.computeBaseline(history.outputs);
+      }
+      return { drift: 0, status: 'establishing_baseline' };
+    }
+
+    // Compute drift from baseline
+    const drift = this.computeDrift(angles, history.baseline);
+    history.driftScores.push({ drift, timestamp: Date.now() });
+    history.outputs.push({ angles, timestamp: Date.now() });
+
+    // Keep only last 100 entries
+    if (history.outputs.length > 100) history.outputs.shift();
+    if (history.driftScores.length > 100) history.driftScores.shift();
+
+    return { drift, status: drift > 0.3 ? 'HIGH_DRIFT_WARNING' : 'normal' };
+  },
+
+  // Compute baseline from initial outputs
+  computeBaseline(outputs) {
+    const avgAngles = Array(10).fill(0);
+    for (const output of outputs) {
+      for (let i = 0; i < 10; i++) {
+        avgAngles[i] += output.angles[i] / outputs.length;
+      }
+    }
+    return avgAngles;
+  },
+
+  // Compute drift from baseline
+  computeDrift(currentAngles, baseline) {
+    return HyperManifold.geodesicDistance(currentAngles, baseline);
+  },
+
+  // Get drift report for agent
+  getDriftReport(agentId) {
+    const history = this.agentHistory.get(agentId);
+    if (!history) return { error: 'AGENT_NOT_FOUND' };
+
+    const recentDrifts = history.driftScores.slice(-10);
+    const avgDrift = recentDrifts.reduce((s, d) => s + d.drift, 0) / (recentDrifts.length || 1);
+    const maxDrift = Math.max(...recentDrifts.map(d => d.drift), 0);
+
+    return {
+      agentId,
+      sampleCount: history.outputs.length,
+      averageDrift: Math.round(avgDrift * 1000) / 1000,
+      maxDrift: Math.round(maxDrift * 1000) / 1000,
+      hasBaseline: !!history.baseline,
+      status: avgDrift > 0.3 ? 'DRIFTING' : avgDrift > 0.15 ? 'MODERATE' : 'STABLE'
+    };
+  }
+};
+
+// ============================================================================
+// Team Orchestrator
+// Multi-agent coordination with consensus and workflow management
+// ============================================================================
+
+const TeamOrchestrator = {
+  teams: new Map(),
+
+  // Create a new team
+  createTeam(config) {
+    const teamId = crypto.randomBytes(8).toString('hex');
+    const team = {
+      id: teamId,
+      name: config.name || `Team-${teamId}`,
+      agents: [],
+      workflow: config.workflow || 'sequential',
+      consensusThreshold: config.consensusThreshold || 0.6,
+      created: Date.now(),
+      state: { tasksCompleted: 0, activeTask: null }
+    };
+
+    // Add agents
+    for (const roleId of config.roles || []) {
+      const agent = AgentArchetypes.createAgent(roleId);
+      if (!agent.error) team.agents.push(agent);
+    }
+
+    this.teams.set(teamId, team);
+    return team;
+  },
+
+  // Execute task with team
+  async executeTask(teamId, task) {
+    const team = this.teams.get(teamId);
+    if (!team) return { error: 'TEAM_NOT_FOUND' };
+
+    team.state.activeTask = task;
+    const results = [];
+
+    // Execute based on workflow type
+    if (team.workflow === 'sequential') {
+      for (const agent of team.agents) {
+        const result = await this.executeAgentTask(agent, task, results);
+        results.push(result);
+      }
+    } else if (team.workflow === 'parallel') {
+      const promises = team.agents.map(agent => this.executeAgentTask(agent, task, []));
+      const parallelResults = await Promise.all(promises);
+      results.push(...parallelResults);
+    }
+
+    // Compute consensus
+    const consensus = this.computeConsensus(results, team.consensusThreshold);
+    team.state.tasksCompleted++;
+    team.state.activeTask = null;
+
+    return { teamId, task, results, consensus };
+  },
+
+  // Execute single agent task
+  async executeAgentTask(agent, task, priorResults) {
+    const context = { ...task, priorResults, agent: agent.id };
+    const angles = HyperManifold.contextToAngles(context);
+
+    // Simulate agent processing
+    const output = {
+      agentId: agent.id,
+      role: agent.role,
+      language: agent.preferredLanguages[0],
+      response: `[${agent.role}] Processed: ${task.description || task}`,
+      angles,
+      timestamp: Date.now()
+    };
+
+    // Record for drift analysis
+    const driftResult = SemanticDriftScoring.recordOutput(agent.id, output, context);
+    output.drift = driftResult;
+
+    // Validate against role constraints
+    const validation = AgentArchetypes.validateOutput(agent, output, context);
+    output.validation = validation;
+
+    return output;
+  },
+
+  // Compute consensus across results
+  computeConsensus(results, threshold) {
+    if (results.length === 0) return { achieved: false, ratio: 0 };
+
+    const validResults = results.filter(r => r.validation?.valid);
+    const ratio = validResults.length / results.length;
+
+    return {
+      achieved: ratio >= threshold,
+      ratio: Math.round(ratio * 100) / 100,
+      validCount: validResults.length,
+      totalCount: results.length,
+      threshold
+    };
+  },
+
+  // Get team status
+  getTeamStatus(teamId) {
+    const team = this.teams.get(teamId);
+    if (!team) return { error: 'TEAM_NOT_FOUND' };
+
+    return {
+      id: team.id,
+      name: team.name,
+      agentCount: team.agents.length,
+      agents: team.agents.map(a => ({ id: a.id, role: a.role, name: a.name })),
+      workflow: team.workflow,
+      tasksCompleted: team.state.tasksCompleted,
+      activeTask: team.state.activeTask ? 'busy' : 'idle'
+    };
+  }
+};
+
+// ============================================================================
+// Group Presets
+// Pre-configured team compositions for common use cases
+// ============================================================================
+
+const GroupPresets = Object.freeze({
+  PRESETS: Object.freeze({
+    RESEARCH_SQUAD: {
+      id: 'research_squad',
+      name: 'Research Squad',
+      description: 'Comprehensive research and verification team',
+      roles: ['researcher', 'researcher', 'critic', 'writer'],
+      workflow: 'sequential',
+      consensusThreshold: 0.75,
+      languages: ['anchor', 'bridge', 'cut']
+    },
+    STORY_ROOM: {
+      id: 'story_room',
+      name: 'Story Room',
+      description: 'Creative narrative development team',
+      roles: ['thinker', 'writer', 'actor', 'critic'],
+      workflow: 'sequential',
+      consensusThreshold: 0.6,
+      languages: ['joy', 'harmony', 'paradox']
+    },
+    OPS_GUARDIAN: {
+      id: 'ops_guardian',
+      name: 'Ops Guardian',
+      description: 'Security monitoring and incident response',
+      roles: ['guardian', 'guardian', 'critic', 'researcher'],
+      workflow: 'parallel',
+      consensusThreshold: 0.9,
+      languages: ['anchor', 'cut']
+    },
+    DEBATE_CHAMBER: {
+      id: 'debate_chamber',
+      name: 'Debate Chamber',
+      description: 'Adversarial reasoning and truth-seeking',
+      roles: ['thinker', 'critic', 'thinker', 'critic'],
+      workflow: 'sequential',
+      consensusThreshold: 0.5,
+      languages: ['paradox', 'cut', 'anchor']
+    },
+    SYNTHESIS_LAB: {
+      id: 'synthesis_lab',
+      name: 'Synthesis Lab',
+      description: 'Integration and harmonization of ideas',
+      roles: ['researcher', 'thinker', 'writer', 'actor'],
+      workflow: 'sequential',
+      consensusThreshold: 0.7,
+      languages: ['bridge', 'harmony', 'joy']
+    }
+  }),
+
+  // Instantiate a preset team
+  instantiate(presetId) {
+    const preset = this.PRESETS[presetId.toUpperCase()];
+    if (!preset) return { error: 'UNKNOWN_PRESET' };
+
+    return TeamOrchestrator.createTeam({
+      name: preset.name,
+      roles: preset.roles,
+      workflow: preset.workflow,
+      consensusThreshold: preset.consensusThreshold
+    });
+  },
+
+  // List available presets
+  list() {
+    return Object.values(this.PRESETS).map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      roleCount: p.roles.length,
+      languages: p.languages
+    }));
+  }
+});
+
+// ============================================================================
 // Trajectory Authorization with Geodesic Validation
 // ============================================================================
 
@@ -1161,6 +1679,105 @@ exports.handler = async (event) => {
       return respond(200, SelfHealingProtocol.getHealingReport());
     }
 
+    // GET /languages - View six-language codex
+    if (method === 'GET' && path === '/languages') {
+      return respond(200, {
+        codex: Object.values(SixLanguages.CODEX).map(l => ({
+          id: l.id, name: l.name, emoji: l.emoji,
+          description: l.description, allowedZones: l.allowedZones
+        })),
+        count: 6,
+        protocol: 'SpiralVerse Codex v1.0'
+      });
+    }
+
+    // POST /languages - Validate and tag message with language
+    if (method === 'POST' && path === '/languages') {
+      const { message, language, agentId } = body;
+      if (!message || !language) {
+        return respond(400, { error: 'Required: message, language' });
+      }
+      const tagged = SixLanguages.tagMessage(message, language, agentId || 'anonymous');
+      const score = SixLanguages.computeLanguageScore(body, language);
+      return respond(tagged.meta.validation.valid ? 200 : 400, { ...tagged, score });
+    }
+
+    // GET /agents - List agent archetypes
+    if (method === 'GET' && path === '/agents') {
+      return respond(200, {
+        roles: Object.values(AgentArchetypes.ROLES).map(r => ({
+          id: r.id, name: r.name, description: r.description,
+          languages: r.preferredLanguages, driftTolerance: r.driftTolerance
+        })),
+        count: Object.keys(AgentArchetypes.ROLES).length
+      });
+    }
+
+    // POST /agents - Create agent instance
+    if (method === 'POST' && path === '/agents') {
+      const { role, name, constraints } = body;
+      if (!role) return respond(400, { error: 'Required: role' });
+      const agent = AgentArchetypes.createAgent(role, { name, constraints });
+      if (agent.error) return respond(400, agent);
+      return respond(200, agent);
+    }
+
+    // GET /teams - List active teams
+    if (method === 'GET' && path === '/teams') {
+      const teams = [];
+      TeamOrchestrator.teams.forEach((team, id) => {
+        teams.push(TeamOrchestrator.getTeamStatus(id));
+      });
+      return respond(200, { teams, count: teams.length });
+    }
+
+    // POST /teams - Create team or execute task
+    if (method === 'POST' && path === '/teams') {
+      const { action, teamId, preset, roles, task, workflow } = body;
+
+      if (action === 'create') {
+        const team = TeamOrchestrator.createTeam({ roles, workflow });
+        return respond(200, team);
+      }
+
+      if (action === 'preset') {
+        if (!preset) return respond(400, { error: 'Required: preset' });
+        const team = GroupPresets.instantiate(preset);
+        if (team.error) return respond(400, team);
+        return respond(200, team);
+      }
+
+      if (action === 'execute') {
+        if (!teamId || !task) return respond(400, { error: 'Required: teamId, task' });
+        const result = await TeamOrchestrator.executeTask(teamId, task);
+        if (result.error) return respond(400, result);
+        return respond(result.consensus.achieved ? 200 : 403, result);
+      }
+
+      if (action === 'status') {
+        if (!teamId) return respond(400, { error: 'Required: teamId' });
+        const status = TeamOrchestrator.getTeamStatus(teamId);
+        if (status.error) return respond(404, status);
+        return respond(200, status);
+      }
+
+      return respond(400, { error: 'Required: action (create|preset|execute|status)' });
+    }
+
+    // GET /presets - List group presets
+    if (method === 'GET' && path === '/presets') {
+      return respond(200, { presets: GroupPresets.list() });
+    }
+
+    // GET /drift - Get drift report for agent
+    if (method === 'GET' && path === '/drift') {
+      const agentId = event.queryStringParameters?.agentId;
+      if (!agentId) return respond(400, { error: 'Required: agentId query param' });
+      const report = SemanticDriftScoring.getDriftReport(agentId);
+      if (report.error) return respond(404, report);
+      return respond(200, report);
+    }
+
     // Legacy endpoints
     if (method === 'POST' && path === '/verify') {
       return respond(200, TrajectoryAuthorization.authorize({
@@ -1173,7 +1790,8 @@ exports.handler = async (event) => {
       endpoints: [
         '/health', '/geometry', '/ceremony', '/derive', '/authorize',
         '/webhook', '/simulate', '/analyze', '/spin', '/raytrace',
-        '/dimensions', '/healing', '/verify'
+        '/dimensions', '/healing', '/languages', '/agents', '/teams',
+        '/presets', '/drift', '/verify'
       ]
     });
   } catch (err) {
