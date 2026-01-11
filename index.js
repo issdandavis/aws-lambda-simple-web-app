@@ -425,6 +425,513 @@ const WebhookSystem = {
 };
 
 // ============================================================================
+// IMMUTABLE CORE: 10-Dimensional Manifold Analysis
+// Each dimension represents a verification axis
+// ============================================================================
+
+const HyperManifold = Object.freeze({
+  DIMENSIONS: Object.freeze([
+    { id: 0, name: 'semantic', radius: 1.0, description: 'Language meaning space' },
+    { id: 1, name: 'intent', radius: 1.2, description: 'Purpose/goal vector' },
+    { id: 2, name: 'emotion', radius: 0.8, description: 'Affective state' },
+    { id: 3, name: 'relationship', radius: 1.1, description: 'Entity connections' },
+    { id: 4, name: 'temporal', radius: 1.0, description: 'Time consistency' },
+    { id: 5, name: 'spatial', radius: 1.0, description: 'Context location' },
+    { id: 6, name: 'security', radius: 1.5, description: 'Access control' },
+    { id: 7, name: 'creative', radius: 0.9, description: 'Generative freedom' },
+    { id: 8, name: 'coherence', radius: 1.3, description: 'Internal consistency' },
+    { id: 9, name: 'spin', radius: 1.0, description: 'Quantum verification' }
+  ]),
+
+  // 10-torus parametrization: T^10 = S^1 × S^1 × ... × S^1 (10 times)
+  parametrize(angles) {
+    // angles = [θ₀, θ₁, ..., θ₉] each in [0, 2π]
+    return this.DIMENSIONS.map((dim, i) => ({
+      dimension: dim.name,
+      angle: angles[i] || 0,
+      x: dim.radius * Math.cos(angles[i] || 0),
+      y: dim.radius * Math.sin(angles[i] || 0)
+    }));
+  },
+
+  // Metric tensor for 10-torus: g = diag(r₀², r₁², ..., r₉²)
+  metricTensor() {
+    return this.DIMENSIONS.map(d => d.radius * d.radius);
+  },
+
+  // Compute geodesic distance in 10D
+  geodesicDistance(angles1, angles2) {
+    const g = this.metricTensor();
+    let sumSq = 0;
+    for (let i = 0; i < 10; i++) {
+      const dTheta = (angles2[i] || 0) - (angles1[i] || 0);
+      // Wrap angle difference to [-π, π]
+      const wrapped = Math.atan2(Math.sin(dTheta), Math.cos(dTheta));
+      sumSq += g[i] * wrapped * wrapped;
+    }
+    return Math.sqrt(sumSq);
+  },
+
+  // Sectional curvature between dimensions i and j
+  sectionalCurvature(i, j, angles) {
+    // For flat torus, sectional curvature is 0
+    // But we add "effective curvature" based on zone interactions
+    const ri = this.DIMENSIONS[i].radius;
+    const rj = this.DIMENSIONS[j].radius;
+    const interaction = Math.cos(angles[i] || 0) * Math.cos(angles[j] || 0);
+    return interaction / (ri * rj);
+  },
+
+  // Compute total curvature across all dimension pairs
+  totalCurvature(angles) {
+    let total = 0;
+    let count = 0;
+    for (let i = 0; i < 10; i++) {
+      for (let j = i + 1; j < 10; j++) {
+        total += this.sectionalCurvature(i, j, angles);
+        count++;
+      }
+    }
+    return { total, average: total / count, pairs: count };
+  },
+
+  // Map request context to 10D angles
+  contextToAngles(context) {
+    const hash = (s) => {
+      let h = 0;
+      const str = typeof s === 'string' ? s : JSON.stringify(s);
+      for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i);
+      return (Math.abs(h) % 1000) / 1000 * 2 * Math.PI;
+    };
+    return [
+      hash(context.semantic || context.message || ''),
+      hash(context.intent || context.action || ''),
+      hash(context.emotion || context.sentiment || ''),
+      hash(context.relationship || context.source || ''),
+      hash(context.timestamp || Date.now()),
+      hash(context.location || context.path || ''),
+      hash(context.securityLevel || context.lane || ''),
+      hash(context.creativity || context.freedom || ''),
+      hash(context.coherence || context.consistency || ''),
+      context.spin?.phase || hash(context.spinSecret || crypto.randomBytes(8))
+    ];
+  },
+
+  // Full dimensional analysis
+  analyze(context) {
+    const angles = this.contextToAngles(context);
+    const position = this.parametrize(angles);
+    const curvature = this.totalCurvature(angles);
+    return { angles, position, curvature, dimensions: 10 };
+  }
+});
+
+// ============================================================================
+// IMMUTABLE CORE: Quantum Spin Mathematics
+// Pauli matrices and spin state verification
+// ============================================================================
+
+const QuantumSpin = Object.freeze({
+  // Pauli matrices (represented as 2x2 complex)
+  PAULI: Object.freeze({
+    I: [[1, 0], [0, 1]],           // Identity
+    X: [[0, 1], [1, 0]],           // σx - bit flip
+    Y: [[0, { r: 0, i: -1 }], [{ r: 0, i: 1 }, 0]], // σy
+    Z: [[1, 0], [0, -1]]           // σz - phase flip
+  }),
+
+  // Generate spin state from secret
+  generateSpinState(secret) {
+    const hash = crypto.createHash('sha256').update(secret).digest();
+    // Bloch sphere coordinates
+    const theta = (hash.readUInt16BE(0) / 65535) * Math.PI;
+    const phi = (hash.readUInt16BE(2) / 65535) * 2 * Math.PI;
+    // Spin vector (sx, sy, sz) on Bloch sphere
+    return {
+      sx: Math.sin(theta) * Math.cos(phi),
+      sy: Math.sin(theta) * Math.sin(phi),
+      sz: Math.cos(theta),
+      theta, phi,
+      stateVector: {
+        alpha: { r: Math.cos(theta / 2), i: 0 },
+        beta: { r: Math.sin(theta / 2) * Math.cos(phi), i: Math.sin(theta / 2) * Math.sin(phi) }
+      }
+    };
+  },
+
+  // Compute expectation value ⟨ψ|σ|ψ⟩ for measurement axis
+  expectationValue(spinState, axis) {
+    const { sx, sy, sz } = spinState;
+    switch (axis) {
+      case 'x': return sx;
+      case 'y': return sy;
+      case 'z': return sz;
+      default: return sz;
+    }
+  },
+
+  // Inner product of two spin states (fidelity)
+  fidelity(spin1, spin2) {
+    // |⟨ψ₁|ψ₂⟩|² = (1 + s1·s2) / 2
+    const dot = spin1.sx * spin2.sx + spin1.sy * spin2.sy + spin1.sz * spin2.sz;
+    return (1 + dot) / 2;
+  },
+
+  // Generate correlated spin pair (entangled-like)
+  generateCorrelatedPair(secret) {
+    const baseSpin = this.generateSpinState(secret);
+    // Anti-correlated partner (singlet-like)
+    const partner = {
+      sx: -baseSpin.sx,
+      sy: -baseSpin.sy,
+      sz: -baseSpin.sz,
+      theta: Math.PI - baseSpin.theta,
+      phi: baseSpin.phi + Math.PI
+    };
+    return { alice: baseSpin, bob: partner, correlation: -1 };
+  },
+
+  // Verify spin matches expected (within tolerance)
+  verifySpin(receivedSpin, expectedSpin, tolerance = 0.1) {
+    const fid = this.fidelity(receivedSpin, expectedSpin);
+    return {
+      verified: fid >= (1 - tolerance),
+      fidelity: Math.round(fid * 1000) / 1000,
+      tolerance,
+      mismatch: fid < (1 - tolerance) ? 'SPIN_MISMATCH_VIOLATION' : null
+    };
+  },
+
+  // Sign request with spin
+  signRequest(request, secret) {
+    const spin = this.generateSpinState(secret);
+    const signature = crypto.createHash('sha256')
+      .update(JSON.stringify(request))
+      .update(secret)
+      .digest('hex').slice(0, 32);
+    return {
+      ...request,
+      spinSignature: {
+        signature,
+        publicSpin: { theta: spin.theta, phi: spin.phi },
+        timestamp: Date.now()
+      }
+    };
+  },
+
+  // Verify signed request
+  verifySignedRequest(signedRequest, secret) {
+    const { spinSignature, ...request } = signedRequest;
+    const expectedSig = crypto.createHash('sha256')
+      .update(JSON.stringify(request))
+      .update(secret)
+      .digest('hex').slice(0, 32);
+    const sigMatch = spinSignature.signature === expectedSig;
+
+    const receivedSpin = this.generateSpinState(secret);
+    // Reconstruct expected spin from public values
+    const expectedSpin = {
+      sx: Math.sin(spinSignature.publicSpin.theta) * Math.cos(spinSignature.publicSpin.phi),
+      sy: Math.sin(spinSignature.publicSpin.theta) * Math.sin(spinSignature.publicSpin.phi),
+      sz: Math.cos(spinSignature.publicSpin.theta)
+    };
+    const spinVerify = this.verifySpin(receivedSpin, expectedSpin);
+
+    return {
+      valid: sigMatch && spinVerify.verified,
+      signatureMatch: sigMatch,
+      spinVerification: spinVerify,
+      geometricIntegrity: sigMatch && spinVerify.verified
+    };
+  }
+});
+
+// ============================================================================
+// Self-Healing Reactive Protocol System
+// Handles crashes, retries, and recovery
+// ============================================================================
+
+const SelfHealingProtocol = {
+  state: {
+    failures: [],
+    recoveries: [],
+    healthScore: 1.0,
+    lastHealthCheck: Date.now(),
+    nodeStatus: 'primary_active'
+  },
+
+  // Wrap operation with self-healing
+  async withRecovery(operation, context, maxRetries = 3) {
+    let lastError = null;
+    const backoffMs = [100, 500, 2000, 5000];
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const start = Date.now();
+        const result = await operation();
+        this.recordSuccess(context, Date.now() - start);
+        return { success: true, result, attempt, recovered: attempt > 0 };
+      } catch (error) {
+        lastError = error;
+        this.recordFailure(context, error, attempt);
+
+        if (attempt < maxRetries) {
+          await this.sleep(backoffMs[attempt] || 5000);
+          await this.attemptRecovery(context, error);
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: lastError?.message || 'Unknown error',
+      attempts: maxRetries + 1,
+      healingReport: this.getHealingReport()
+    };
+  },
+
+  recordSuccess(context, durationMs) {
+    this.state.healthScore = Math.min(1.0, this.state.healthScore + 0.1);
+    this.state.lastHealthCheck = Date.now();
+  },
+
+  recordFailure(context, error, attempt) {
+    this.state.failures.push({
+      context: context.substring(0, 100),
+      error: error?.message || 'Unknown',
+      attempt,
+      timestamp: Date.now()
+    });
+    this.state.healthScore = Math.max(0, this.state.healthScore - 0.2);
+    // Keep only last 100 failures
+    if (this.state.failures.length > 100) this.state.failures.shift();
+  },
+
+  async attemptRecovery(context, error) {
+    const recovery = {
+      context,
+      errorType: error?.name || 'Error',
+      action: 'state_reset',
+      timestamp: Date.now()
+    };
+
+    // Recovery strategies based on error type
+    if (error?.message?.includes('memory')) {
+      recovery.action = 'gc_hint';
+      if (global.gc) global.gc();
+    } else if (error?.message?.includes('timeout')) {
+      recovery.action = 'extend_timeout';
+    } else {
+      recovery.action = 'retry_with_backoff';
+    }
+
+    this.state.recoveries.push(recovery);
+    if (this.state.recoveries.length > 50) this.state.recoveries.shift();
+    return recovery;
+  },
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  getHealingReport() {
+    return {
+      healthScore: Math.round(this.state.healthScore * 100) / 100,
+      recentFailures: this.state.failures.slice(-5),
+      recentRecoveries: this.state.recoveries.slice(-5),
+      nodeStatus: this.state.nodeStatus,
+      uptime: Date.now() - (this.state.failures[0]?.timestamp || Date.now())
+    };
+  },
+
+  // Multi-nodal support function execution
+  async executeWithSupport(primaryOp, supportOps = []) {
+    const results = { primary: null, support: [], consensus: null };
+
+    // Execute primary with recovery
+    results.primary = await this.withRecovery(primaryOp, 'primary_node');
+
+    // Execute support functions in parallel
+    if (supportOps.length > 0) {
+      results.support = await Promise.all(
+        supportOps.map((op, i) => this.withRecovery(op, `support_node_${i}`))
+      );
+    }
+
+    // Compute consensus if multiple results
+    if (results.support.length > 0) {
+      const allSuccess = [results.primary, ...results.support].filter(r => r.success);
+      results.consensus = {
+        agreementRatio: allSuccess.length / (1 + results.support.length),
+        primaryValid: results.primary.success,
+        supportValid: results.support.filter(r => r.success).length
+      };
+    }
+
+    return results;
+  }
+};
+
+// ============================================================================
+// Ray Tracing for Intent Trajectory Simulation
+// Cast rays through manifold to validate intent paths
+// ============================================================================
+
+const IntentRayTracer = Object.freeze({
+  // Ray structure: origin, direction, energy
+  createRay(origin, target, initialEnergy = 1.0) {
+    const direction = [];
+    for (let i = 0; i < 10; i++) {
+      direction.push((target[i] || 0) - (origin[i] || 0));
+    }
+    // Normalize direction
+    const mag = Math.sqrt(direction.reduce((s, d) => s + d * d, 0));
+    const normalized = direction.map(d => d / (mag || 1));
+    return { origin, direction: normalized, energy: initialEnergy, magnitude: mag };
+  },
+
+  // Step ray through manifold
+  stepRay(ray, stepSize = 0.1) {
+    const newPosition = ray.origin.map((o, i) => o + ray.direction[i] * stepSize);
+    // Compute energy loss based on curvature at position
+    const curvature = HyperManifold.totalCurvature(newPosition);
+    const energyLoss = Math.abs(curvature.average) * stepSize * 0.1;
+    return {
+      ...ray,
+      origin: newPosition,
+      energy: Math.max(0, ray.energy - energyLoss),
+      curvatureTraversed: curvature.average
+    };
+  },
+
+  // Trace full path from origin to target
+  traceIntent(origin, target, maxSteps = 100) {
+    let ray = this.createRay(origin, target);
+    const path = [{ position: [...ray.origin], energy: ray.energy }];
+    const zones = [];
+    let totalCurvature = 0;
+
+    for (let step = 0; step < maxSteps && ray.energy > 0.01; step++) {
+      ray = this.stepRay(ray);
+      path.push({ position: [...ray.origin], energy: ray.energy });
+      totalCurvature += Math.abs(ray.curvatureTraversed || 0);
+
+      // Check zone crossings
+      const dist = HyperManifold.geodesicDistance(ray.origin, target);
+      if (dist < 0.1) break; // Reached target
+    }
+
+    // Analyze path for violations
+    const energyRemaining = ray.energy;
+    const reachedTarget = HyperManifold.geodesicDistance(ray.origin, target) < 0.1;
+
+    return {
+      path,
+      steps: path.length,
+      energyRemaining: Math.round(energyRemaining * 1000) / 1000,
+      totalCurvatureTraversed: Math.round(totalCurvature * 1000) / 1000,
+      reachedTarget,
+      valid: reachedTarget && energyRemaining > 0.1,
+      violation: !reachedTarget ? 'TARGET_UNREACHABLE' :
+                 energyRemaining < 0.1 ? 'ENERGY_DEPLETED' : null
+    };
+  },
+
+  // Batch trace multiple intents
+  traceMultiple(intents) {
+    return intents.map(intent => ({
+      intent: intent.id,
+      trace: this.traceIntent(intent.origin, intent.target)
+    }));
+  },
+
+  // Visualize as ASCII (simplified)
+  visualizePath(trace, width = 40) {
+    const lines = [];
+    const stepWidth = trace.path.length / width;
+    for (let i = 0; i < width; i++) {
+      const idx = Math.floor(i * stepWidth);
+      const point = trace.path[idx];
+      const energy = Math.round(point.energy * 10);
+      lines.push('█'.repeat(energy) + '░'.repeat(10 - energy));
+    }
+    return lines.join('\n');
+  }
+});
+
+// ============================================================================
+// Comprehensive Analysis Engine
+// Combines all systems for full verification
+// ============================================================================
+
+const AnalysisEngine = {
+  async runComprehensive(request, secrets = {}) {
+    const results = {
+      timestamp: Date.now(),
+      requestId: crypto.randomBytes(8).toString('hex'),
+      dimensions: {},
+      spin: {},
+      trajectory: {},
+      healing: {},
+      security: {},
+      verdict: {}
+    };
+
+    // 1. 10-Dimensional Analysis
+    await SelfHealingProtocol.withRecovery(async () => {
+      results.dimensions = HyperManifold.analyze(request);
+    }, 'dimensional_analysis');
+
+    // 2. Quantum Spin Verification
+    if (secrets.spinSecret) {
+      await SelfHealingProtocol.withRecovery(async () => {
+        const expectedSpin = QuantumSpin.generateSpinState(secrets.spinSecret);
+        const receivedSpin = request.spin ?
+          { sx: request.spin.sx, sy: request.spin.sy, sz: request.spin.sz } :
+          QuantumSpin.generateSpinState(request.spinToken || '');
+        results.spin = {
+          expected: { theta: expectedSpin.theta, phi: expectedSpin.phi },
+          received: receivedSpin,
+          verification: QuantumSpin.verifySpin(receivedSpin, expectedSpin)
+        };
+      }, 'spin_verification');
+    }
+
+    // 3. Intent Ray Tracing
+    if (request.intentOrigin && request.intentTarget) {
+      await SelfHealingProtocol.withRecovery(async () => {
+        const origin = HyperManifold.contextToAngles(request.intentOrigin);
+        const target = HyperManifold.contextToAngles(request.intentTarget);
+        results.trajectory = IntentRayTracer.traceIntent(origin, target);
+      }, 'ray_tracing');
+    }
+
+    // 4. Self-Healing Report
+    results.healing = SelfHealingProtocol.getHealingReport();
+
+    // 5. Security Simulation (10-year projection)
+    results.security = SecuritySimulation.simulate({ years: [1, 10, 100] });
+
+    // 6. Final Verdict
+    const violations = [];
+    if (results.spin.verification?.mismatch) violations.push(results.spin.verification.mismatch);
+    if (results.trajectory.violation) violations.push(results.trajectory.violation);
+    if (results.healing.healthScore < 0.5) violations.push('SYSTEM_HEALTH_DEGRADED');
+
+    results.verdict = {
+      authorized: violations.length === 0,
+      violations,
+      geometricIntegrity: results.dimensions.curvature?.average > -0.5,
+      spinIntegrity: !results.spin.verification?.mismatch,
+      trajectoryIntegrity: !results.trajectory.violation,
+      systemHealth: results.healing.healthScore
+    };
+
+    return results;
+  }
+};
+
+// ============================================================================
 // Trajectory Authorization with Geodesic Validation
 // ============================================================================
 
@@ -574,6 +1081,86 @@ exports.handler = async (event) => {
       return respond(200, result);
     }
 
+    // POST /analyze - Comprehensive 10D analysis with spin and ray tracing
+    if (method === 'POST' && path === '/analyze') {
+      const secrets = { spinSecret: body.spinSecret || body.secret };
+      const result = await AnalysisEngine.runComprehensive(body, secrets);
+      return respond(result.verdict.authorized ? 200 : 403, result);
+    }
+
+    // GET /analyze - Run with test parameters
+    if (method === 'GET' && path === '/analyze') {
+      const testRequest = {
+        message: 'test analysis',
+        intent: 'verify',
+        intentOrigin: { semantic: 'start', intent: 'query' },
+        intentTarget: { semantic: 'end', intent: 'response' }
+      };
+      const result = await AnalysisEngine.runComprehensive(testRequest, {});
+      return respond(200, result);
+    }
+
+    // POST /spin - Generate and verify spin states
+    if (method === 'POST' && path === '/spin') {
+      const { secret, action } = body;
+      if (action === 'generate') {
+        const spin = QuantumSpin.generateSpinState(secret || crypto.randomBytes(16).toString('hex'));
+        return respond(200, { spin, blochSphere: { theta: spin.theta, phi: spin.phi } });
+      }
+      if (action === 'pair') {
+        const pair = QuantumSpin.generateCorrelatedPair(secret || crypto.randomBytes(16).toString('hex'));
+        return respond(200, pair);
+      }
+      if (action === 'sign') {
+        const signed = QuantumSpin.signRequest(body.request || {}, secret);
+        return respond(200, signed);
+      }
+      if (action === 'verify') {
+        const result = QuantumSpin.verifySignedRequest(body.signedRequest, secret);
+        return respond(result.valid ? 200 : 403, result);
+      }
+      return respond(400, { error: 'Required: action (generate|pair|sign|verify)' });
+    }
+
+    // POST /raytrace - Trace intent trajectory through 10D manifold
+    if (method === 'POST' && path === '/raytrace') {
+      const { origin, target, intents } = body;
+      if (intents) {
+        const results = IntentRayTracer.traceMultiple(intents);
+        return respond(200, { traces: results });
+      }
+      if (!origin || !target) {
+        return respond(400, { error: 'Required: origin and target contexts, or intents array' });
+      }
+      const originAngles = HyperManifold.contextToAngles(origin);
+      const targetAngles = HyperManifold.contextToAngles(target);
+      const trace = IntentRayTracer.traceIntent(originAngles, targetAngles);
+      return respond(trace.valid ? 200 : 403, {
+        trace,
+        visualization: IntentRayTracer.visualizePath(trace)
+      });
+    }
+
+    // GET /dimensions - View 10D manifold structure
+    if (method === 'GET' && path === '/dimensions') {
+      return respond(200, {
+        dimensions: HyperManifold.DIMENSIONS,
+        metricTensor: HyperManifold.metricTensor(),
+        structure: 'T^10 (10-torus)'
+      });
+    }
+
+    // POST /dimensions - Analyze context in 10D
+    if (method === 'POST' && path === '/dimensions') {
+      const analysis = HyperManifold.analyze(body);
+      return respond(200, analysis);
+    }
+
+    // GET /healing - View self-healing system status
+    if (method === 'GET' && path === '/healing') {
+      return respond(200, SelfHealingProtocol.getHealingReport());
+    }
+
     // Legacy endpoints
     if (method === 'POST' && path === '/verify') {
       return respond(200, TrajectoryAuthorization.authorize({
@@ -583,7 +1170,11 @@ exports.handler = async (event) => {
 
     return respond(404, {
       error: 'Not found',
-      endpoints: ['/health', '/geometry', '/ceremony', '/derive', '/authorize', '/webhook', '/simulate', '/verify']
+      endpoints: [
+        '/health', '/geometry', '/ceremony', '/derive', '/authorize',
+        '/webhook', '/simulate', '/analyze', '/spin', '/raytrace',
+        '/dimensions', '/healing', '/verify'
+      ]
     });
   } catch (err) {
     return respond(500, { error: err.message });
