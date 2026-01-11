@@ -1488,6 +1488,385 @@ const TrajectoryAuthorization = {
 };
 
 // ============================================================================
+// Manifold Controller - Geometric Integrity Enforcement
+// The "Physics Engine" for data - transforms Trust into calculable geometry
+// Implements "The Snap" and Time Dilation (Stutter) penalty system
+// ============================================================================
+
+const ManifoldController = {
+  // Torus parameters (immutable geometry)
+  R: TorusGeometry.R,  // Major radius - global scale of memory
+  r: TorusGeometry.r,  // Minor radius - context switching cost
+
+  // Integrity thresholds
+  thresholds: {
+    snap: 0.5,           // Geometric divergence threshold for "The Snap"
+    warning: 0.3,        // Warning threshold (pre-snap tension)
+    critical: 0.8,       // Critical threshold (major violation)
+    catastrophic: 1.5    // Catastrophic (system freeze)
+  },
+
+  // Time Dilation parameters
+  timeDilation: {
+    baseDelay: 50,       // Base delay in milliseconds
+    beta: 1.5,           // Sensitivity coefficient
+    maxDelay: 5000,      // Maximum delay (The Stutter)
+    freezeThreshold: 3   // Consecutive failures before freeze
+  },
+
+  // Ledger state - the geometric memory
+  ledger: {
+    entries: [],
+    currentState: { theta: 0, phi: 0 },
+    failCount: 0,
+    snapHistory: [],
+    lastWrite: Date.now()
+  },
+
+  // Deterministic text-to-angle mapping using SHA-256
+  textToAngle(text) {
+    const hash = crypto.createHash('sha256').update(String(text)).digest();
+    // Use first 8 bytes for high precision
+    const high = hash.readUInt32BE(0);
+    const low = hash.readUInt32BE(4);
+    // Combine for 64-bit precision, normalize to [0, 2π]
+    const normalized = (high * 0x100000000 + low) / (0xFFFFFFFF * 0x100000000 + 0xFFFFFFFF);
+    return normalized * 2 * Math.PI;
+  },
+
+  // Calculate geometric divergence with periodic boundary handling
+  calculateDivergence(theta1, phi1, theta2, phi2) {
+    // Handle periodic wrapping - shortest angular distance
+    const wrapAngle = (d) => {
+      const wrapped = Math.abs(d) % (2 * Math.PI);
+      return Math.min(wrapped, 2 * Math.PI - wrapped);
+    };
+
+    const dTheta = wrapAngle(theta2 - theta1);
+    const dPhi = wrapAngle(phi2 - phi1);
+
+    // Average theta for local metric approximation
+    const avgTheta = (theta1 + theta2) / 2;
+
+    // The Equation of Trust: ds² = r²dθ² + (R + r·cosθ)²dφ²
+    const sequencePenalty = Math.pow(this.R + this.r * Math.cos(avgTheta), 2) * Math.pow(dPhi, 2);
+    const domainPenalty = Math.pow(this.r, 2) * Math.pow(dTheta, 2);
+
+    return Math.sqrt(sequencePenalty + domainPenalty);
+  },
+
+  // Lattice search for true geodesic (handles multiple wrappings)
+  findTrueGeodesic(theta1, phi1, theta2, phi2) {
+    let minDistance = Infinity;
+    let bestPath = { k: 0, m: 0 };
+
+    // Search the 9 nearest lattice points (covering space)
+    for (let k = -1; k <= 1; k++) {
+      for (let m = -1; m <= 1; m++) {
+        const theta2Wrapped = theta2 + 2 * Math.PI * k;
+        const phi2Wrapped = phi2 + 2 * Math.PI * m;
+
+        // Direct Euclidean in covering space for comparison
+        const dTheta = theta2Wrapped - theta1;
+        const dPhi = phi2Wrapped - phi1;
+        const avgTheta = (theta1 + theta2Wrapped) / 2;
+
+        const dist = Math.sqrt(
+          Math.pow(this.r, 2) * Math.pow(dTheta, 2) +
+          Math.pow(this.R + this.r * Math.cos(avgTheta), 2) * Math.pow(dPhi, 2)
+        );
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestPath = { k, m, theta: theta2Wrapped, phi: phi2Wrapped };
+        }
+      }
+    }
+
+    return {
+      distance: minDistance,
+      wrapping: bestPath,
+      windingNumber: { theta: bestPath.k, phi: bestPath.m }
+    };
+  },
+
+  // Calculate Time Dilation penalty
+  calculateTimeDilation(failCount, divergence) {
+    if (failCount === 0) return 0;
+
+    const { baseDelay, beta, maxDelay } = this.timeDilation;
+
+    // τ_delay = τ_base × (1 + FailCount)^β × (divergence / threshold)
+    const delay = baseDelay * Math.pow(1 + failCount, beta) * (divergence / this.thresholds.snap);
+
+    return Math.min(delay, maxDelay);
+  },
+
+  // Detect snap condition and severity
+  detectSnap(divergence) {
+    const { snap, warning, critical, catastrophic } = this.thresholds;
+
+    if (divergence >= catastrophic) {
+      return { snap: true, severity: 'CATASTROPHIC', action: 'FREEZE', confidence: 0 };
+    }
+    if (divergence >= critical) {
+      return { snap: true, severity: 'CRITICAL', action: 'REJECT_HARD', confidence: 0.1 };
+    }
+    if (divergence >= snap) {
+      return { snap: true, severity: 'SNAP', action: 'REJECT', confidence: 0.3 };
+    }
+    if (divergence >= warning) {
+      return { snap: false, severity: 'WARNING', action: 'ALLOW_CAUTIOUS', confidence: 0.6 };
+    }
+    return { snap: false, severity: 'CLEAN', action: 'ALLOW', confidence: 1.0 };
+  },
+
+  // Classify the zone based on theta (semantic mapping)
+  classifySemanticZone(theta) {
+    const K = TorusGeometry.gaussianCurvature(theta);
+    const zone = TorusGeometry.classifyZone(theta);
+
+    // Semantic interpretation
+    let semantic;
+    if (theta >= 0 && theta < Math.PI / 4) {
+      semantic = 'ABSOLUTE_TRUTH';  // Outer equator - maximum verification
+    } else if (theta >= Math.PI / 4 && theta < Math.PI / 2) {
+      semantic = 'HIGH_SECURITY';
+    } else if (theta >= Math.PI / 2 && theta < 3 * Math.PI / 4) {
+      semantic = 'TRANSITION_CREATIVE';
+    } else if (theta >= 3 * Math.PI / 4 && theta < Math.PI) {
+      semantic = 'CREATIVE_FLUX';
+    } else if (theta >= Math.PI && theta < 5 * Math.PI / 4) {
+      semantic = 'MAXIMUM_FLUX';  // Inner equator - rapid exploration
+    } else if (theta >= 5 * Math.PI / 4 && theta < 3 * Math.PI / 2) {
+      semantic = 'CREATIVE_FLUX';
+    } else if (theta >= 3 * Math.PI / 2 && theta < 7 * Math.PI / 4) {
+      semantic = 'TRANSITION_SECURITY';
+    } else {
+      semantic = 'HIGH_SECURITY';
+    }
+
+    return {
+      ...zone,
+      semantic,
+      metricCost: Math.pow(this.R + this.r * Math.cos(theta), 2),
+      timeSpeed: 1 / (this.R + this.r * Math.cos(theta))  // Time moves slower in security zones
+    };
+  },
+
+  // The core validation function - accepts or rejects writes
+  validateWrite(fact, options = {}) {
+    const {
+      domain = fact.domain || fact.content,
+      sequenceId = fact.sequenceId || fact.timestamp || Date.now(),
+      forceWrite = false
+    } = options;
+
+    // Map fact to geometric coordinates
+    const thetaNew = this.textToAngle(domain);
+    const phiNew = this.textToAngle(String(sequenceId));
+
+    // Get current state
+    const { theta: thetaCurrent, phi: phiCurrent } = this.ledger.currentState;
+
+    // Calculate geometric divergence
+    const divergence = this.calculateDivergence(thetaCurrent, phiCurrent, thetaNew, phiNew);
+
+    // Find true geodesic path
+    const geodesic = this.findTrueGeodesic(thetaCurrent, phiCurrent, thetaNew, phiNew);
+
+    // Detect snap condition
+    const snapResult = this.detectSnap(divergence);
+
+    // Classify zones
+    const fromZone = this.classifySemanticZone(thetaCurrent);
+    const toZone = this.classifySemanticZone(thetaNew);
+
+    // Check for forbidden transitions (e.g., direct ABSOLUTE_TRUTH to MAXIMUM_FLUX)
+    const forbiddenTransition = (
+      fromZone.semantic === 'ABSOLUTE_TRUTH' && toZone.semantic === 'MAXIMUM_FLUX'
+    ) || (
+      fromZone.semantic === 'MAXIMUM_FLUX' && toZone.semantic === 'ABSOLUTE_TRUTH'
+    );
+
+    if (forbiddenTransition && !forceWrite) {
+      snapResult.snap = true;
+      snapResult.severity = 'FORBIDDEN_TRANSITION';
+      snapResult.action = 'REJECT_HARD';
+    }
+
+    // Calculate time dilation if snap
+    let timeDilation = 0;
+    if (snapResult.snap) {
+      this.ledger.failCount++;
+      timeDilation = this.calculateTimeDilation(this.ledger.failCount, divergence);
+
+      // Record snap in history
+      this.ledger.snapHistory.push({
+        timestamp: Date.now(),
+        divergence,
+        severity: snapResult.severity,
+        from: { theta: thetaCurrent, phi: phiCurrent, zone: fromZone.semantic },
+        to: { theta: thetaNew, phi: phiNew, zone: toZone.semantic }
+      });
+
+      // Check for freeze condition
+      if (this.ledger.failCount >= this.timeDilation.freezeThreshold) {
+        snapResult.action = 'FREEZE';
+        timeDilation = this.timeDilation.maxDelay;
+      }
+    } else {
+      // Successful write - reset fail count
+      this.ledger.failCount = 0;
+    }
+
+    // Build result
+    const result = {
+      status: snapResult.snap ? 'FAIL' : 'SUCCESS',
+      coordinates: {
+        current: { theta: thetaCurrent, phi: phiCurrent },
+        proposed: { theta: thetaNew, phi: phiNew }
+      },
+      geometry: {
+        divergence: Math.round(divergence * 10000) / 10000,
+        geodesicDistance: Math.round(geodesic.distance * 10000) / 10000,
+        windingNumber: geodesic.windingNumber
+      },
+      zones: {
+        from: fromZone,
+        to: toZone,
+        transition: forbiddenTransition ? 'FORBIDDEN' : 'ALLOWED'
+      },
+      snap: snapResult,
+      penalty: {
+        failCount: this.ledger.failCount,
+        timeDilation: Math.round(timeDilation),
+        stutterActive: timeDilation > 0
+      },
+      trust: {
+        equationOfTrust: `ds² = ${this.r}²dθ² + (${this.R} + ${this.r}·cos(θ))²dφ²`,
+        value: Math.round((1 - Math.min(1, divergence / this.thresholds.critical)) * 1000) / 1000
+      }
+    };
+
+    // If success and not forced, update ledger state
+    if (!snapResult.snap || forceWrite) {
+      const entry = {
+        id: this.ledger.entries.length,
+        timestamp: Date.now(),
+        fact: { domain, sequenceId, content: fact.content || fact },
+        coordinates: { theta: thetaNew, phi: phiNew },
+        divergenceFromPrevious: divergence,
+        zone: toZone.semantic
+      };
+
+      this.ledger.entries.push(entry);
+      this.ledger.currentState = { theta: thetaNew, phi: phiNew };
+      this.ledger.lastWrite = Date.now();
+
+      result.entry = entry;
+    }
+
+    return result;
+  },
+
+  // Query the ledger by geometric proximity
+  queryByProximity(theta, phi, maxDistance = 0.5) {
+    const results = [];
+
+    for (const entry of this.ledger.entries) {
+      const distance = this.calculateDivergence(theta, phi, entry.coordinates.theta, entry.coordinates.phi);
+      if (distance <= maxDistance) {
+        results.push({
+          entry,
+          distance: Math.round(distance * 10000) / 10000
+        });
+      }
+    }
+
+    // Sort by distance
+    results.sort((a, b) => a.distance - b.distance);
+    return results;
+  },
+
+  // Audit the ledger - detect discontinuities
+  auditLedger() {
+    const violations = [];
+    let totalDivergence = 0;
+    let maxDivergence = 0;
+
+    for (let i = 1; i < this.ledger.entries.length; i++) {
+      const prev = this.ledger.entries[i - 1];
+      const curr = this.ledger.entries[i];
+
+      const divergence = this.calculateDivergence(
+        prev.coordinates.theta, prev.coordinates.phi,
+        curr.coordinates.theta, curr.coordinates.phi
+      );
+
+      totalDivergence += divergence;
+      maxDivergence = Math.max(maxDivergence, divergence);
+
+      if (divergence > this.thresholds.snap) {
+        violations.push({
+          index: i,
+          from: prev,
+          to: curr,
+          divergence: Math.round(divergence * 10000) / 10000,
+          severity: this.detectSnap(divergence).severity
+        });
+      }
+    }
+
+    const avgDivergence = this.ledger.entries.length > 1 ?
+      totalDivergence / (this.ledger.entries.length - 1) : 0;
+
+    return {
+      entryCount: this.ledger.entries.length,
+      violations,
+      violationCount: violations.length,
+      integrityScore: Math.round((1 - violations.length / Math.max(1, this.ledger.entries.length)) * 1000) / 1000,
+      statistics: {
+        averageDivergence: Math.round(avgDivergence * 10000) / 10000,
+        maxDivergence: Math.round(maxDivergence * 10000) / 10000,
+        totalSnapEvents: this.ledger.snapHistory.length,
+        currentFailCount: this.ledger.failCount
+      },
+      health: violations.length === 0 ? 'HEALTHY' : violations.length < 3 ? 'DEGRADED' : 'CORRUPTED'
+    };
+  },
+
+  // Visualize ledger as path data (for rendering)
+  visualizePath() {
+    return this.ledger.entries.map((entry, i) => {
+      const pos = TorusGeometry.parametrize(entry.coordinates.theta, entry.coordinates.phi);
+      return {
+        index: i,
+        x: Math.round(pos.x * 1000) / 1000,
+        y: Math.round(pos.y * 1000) / 1000,
+        z: Math.round(pos.z * 1000) / 1000,
+        theta: Math.round(entry.coordinates.theta * 1000) / 1000,
+        phi: Math.round(entry.coordinates.phi * 1000) / 1000,
+        zone: entry.zone,
+        timestamp: entry.timestamp
+      };
+    });
+  },
+
+  // Reset ledger (for testing)
+  reset() {
+    this.ledger = {
+      entries: [],
+      currentState: { theta: 0, phi: 0 },
+      failCount: 0,
+      snapHistory: [],
+      lastWrite: Date.now()
+    };
+    return { status: 'RESET', timestamp: Date.now() };
+  }
+};
+
+// ============================================================================
 // Neural Synthesizer - Hear the Thoughts of the Network
 // Maps 10D manifold state to audio synthesis parameters
 // The torus surface becomes a wavetable; curvature becomes wave folding
@@ -2493,6 +2872,156 @@ exports.handler = async (event) => {
       });
     }
 
+    // ========================================================================
+    // Geometric Ledger Endpoints - 4D Hyper-Torus Memory
+    // Manifold Controller with Snap & Time Dilation (Stutter)
+    // ========================================================================
+
+    // POST /ledger/write - Validate and write fact to geometric ledger
+    if (method === 'POST' && path === '/ledger/write') {
+      const { fact, domain, sequenceId, forceWrite } = body;
+      if (!fact && !domain) return respond(400, { error: 'Required: fact or domain' });
+
+      const result = ManifoldController.validateWrite(
+        fact || { domain, content: body.content },
+        { domain, sequenceId, forceWrite }
+      );
+
+      // If stutter is active, simulate delay info
+      if (result.penalty.stutterActive) {
+        result.penalty.stutterInfo = `System would pause ${result.penalty.timeDilation}ms before next operation`;
+      }
+
+      return respond(result.status === 'SUCCESS' ? 200 : 403, result);
+    }
+
+    // GET /ledger - Get current ledger state
+    if (method === 'GET' && path === '/ledger') {
+      return respond(200, {
+        state: ManifoldController.ledger.currentState,
+        entryCount: ManifoldController.ledger.entries.length,
+        failCount: ManifoldController.ledger.failCount,
+        snapHistory: ManifoldController.ledger.snapHistory.slice(-10),  // Last 10 snaps
+        thresholds: ManifoldController.thresholds,
+        timeDilation: ManifoldController.timeDilation,
+        torusParams: { R: ManifoldController.R, r: ManifoldController.r }
+      });
+    }
+
+    // GET /ledger/audit - Full ledger integrity audit
+    if (method === 'GET' && path === '/ledger/audit') {
+      const audit = ManifoldController.auditLedger();
+      return respond(200, audit);
+    }
+
+    // GET /ledger/path - Get visualization path data
+    if (method === 'GET' && path === '/ledger/path') {
+      const path = ManifoldController.visualizePath();
+      return respond(200, { path, count: path.length });
+    }
+
+    // POST /ledger/query - Query by geometric proximity
+    if (method === 'POST' && path === '/ledger/query') {
+      const { theta, phi, maxDistance, text } = body;
+
+      let queryTheta = theta, queryPhi = phi;
+      if (text) {
+        queryTheta = ManifoldController.textToAngle(text);
+        queryPhi = ManifoldController.textToAngle(text + '_seq');
+      }
+
+      if (queryTheta === undefined) {
+        return respond(400, { error: 'Required: theta & phi, or text' });
+      }
+
+      const results = ManifoldController.queryByProximity(queryTheta, queryPhi, maxDistance || 0.5);
+      return respond(200, {
+        query: { theta: queryTheta, phi: queryPhi },
+        results,
+        count: results.length
+      });
+    }
+
+    // POST /ledger/geodesic - Calculate true geodesic between points
+    if (method === 'POST' && path === '/ledger/geodesic') {
+      const { from, to } = body;
+      if (!from || !to) return respond(400, { error: 'Required: from {theta, phi}, to {theta, phi}' });
+
+      const geodesic = ManifoldController.findTrueGeodesic(from.theta, from.phi, to.theta, to.phi);
+      const divergence = ManifoldController.calculateDivergence(from.theta, from.phi, to.theta, to.phi);
+      const snapResult = ManifoldController.detectSnap(divergence);
+
+      return respond(200, {
+        from: { ...from, zone: ManifoldController.classifySemanticZone(from.theta) },
+        to: { ...to, zone: ManifoldController.classifySemanticZone(to.theta) },
+        geodesic,
+        divergence: Math.round(divergence * 10000) / 10000,
+        wouldSnap: snapResult.snap,
+        snapSeverity: snapResult.severity,
+        equationOfTrust: `ds² = ${ManifoldController.r}²dθ² + (${ManifoldController.R} + ${ManifoldController.r}·cos(θ))²dφ²`
+      });
+    }
+
+    // GET /ledger/zones - Get semantic zone map
+    if (method === 'GET' && path === '/ledger/zones') {
+      const zones = [];
+      const steps = 16;
+      for (let i = 0; i < steps; i++) {
+        const theta = (i / steps) * 2 * Math.PI;
+        zones.push({
+          theta: Math.round(theta * 1000) / 1000,
+          ...ManifoldController.classifySemanticZone(theta)
+        });
+      }
+      return respond(200, {
+        zones,
+        description: {
+          ABSOLUTE_TRUTH: 'Outer equator - maximum verification, time slows',
+          HIGH_SECURITY: 'Near outer - strong verification',
+          TRANSITION_CREATIVE: 'Moving toward creative zone',
+          CREATIVE_FLUX: 'Creative exploration, reduced constraints',
+          MAXIMUM_FLUX: 'Inner equator - rapid exploration, time accelerates',
+          TRANSITION_SECURITY: 'Moving toward security zone'
+        }
+      });
+    }
+
+    // POST /ledger/reset - Reset ledger (for testing)
+    if (method === 'POST' && path === '/ledger/reset') {
+      const result = ManifoldController.reset();
+      return respond(200, result);
+    }
+
+    // POST /ledger/hash - Convert text to torus coordinates
+    if (method === 'POST' && path === '/ledger/hash') {
+      const { text, domain, sequence } = body;
+      if (!text && !domain) return respond(400, { error: 'Required: text or domain' });
+
+      const result = {
+        input: { text, domain, sequence }
+      };
+
+      if (text) {
+        result.theta = ManifoldController.textToAngle(text);
+        result.phi = ManifoldController.textToAngle(text + '_sequence');
+      }
+      if (domain) {
+        result.domainTheta = ManifoldController.textToAngle(domain);
+      }
+      if (sequence) {
+        result.sequencePhi = ManifoldController.textToAngle(String(sequence));
+      }
+
+      // Add zone classification
+      const theta = result.theta || result.domainTheta;
+      if (theta !== undefined) {
+        result.zone = ManifoldController.classifySemanticZone(theta);
+        result.position = TorusGeometry.parametrize(theta, result.phi || result.sequencePhi || 0);
+      }
+
+      return respond(200, result);
+    }
+
     return respond(404, {
       error: 'Not found',
       endpoints: [
@@ -2500,7 +3029,9 @@ exports.handler = async (event) => {
         '/webhook', '/simulate', '/analyze', '/spin', '/raytrace',
         '/dimensions', '/healing', '/languages', '/agents', '/teams',
         '/presets', '/drift', '/verify',
-        '/synth', '/synth/raw', '/synth/verify', '/synth/lexicon', '/synth/compare'
+        '/synth', '/synth/raw', '/synth/verify', '/synth/lexicon', '/synth/compare',
+        '/ledger', '/ledger/write', '/ledger/audit', '/ledger/path',
+        '/ledger/query', '/ledger/geodesic', '/ledger/zones', '/ledger/reset', '/ledger/hash'
       ]
     });
   } catch (err) {
