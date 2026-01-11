@@ -2,5 +2,11 @@ test_results.json
 scbe_validation_results.json
 quasicrystal_validation_results.json
 gravity_intent_validation.json
+scbe_box_test_results.json
+attack_sink_data.json
+attack_cost_curve.png
+sink_depth.png
+ray_patterns.png
+feasibility_boundary.png
 __pycache__/
 *.pyc
