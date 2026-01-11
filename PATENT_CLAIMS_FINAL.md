@@ -263,6 +263,116 @@ A computer system comprising at least one processor and memory storing instructi
 
 ---
 
+## CLAIM 14 (Dependent - Multi-State Encoding with Decimal Drift Detection)
+
+The method of claim 1, wherein:
+
+(a) **encoding agent behavior** comprises assigning each agent state to one of a plurality of discrete base states numbered 0 through 5, wherein:
+   - an **integer-valued state** (e.g., 2.0, 4.0) indicates stable operation within a defined semantic domain;
+   - a **decimal-valued state** (e.g., 2.37, 4.82) indicates transitional behavior or uncertainty between semantic domains;
+
+(b) **computing a drift metric** comprises:
+   - extracting a decimal component δ from an observed state value s by computing **δ = s - floor(s)**, where floor(s) denotes rounding down to the nearest integer;
+   - comparing the decimal component δ to a stability threshold τ_stable (default: 0.1);
+
+(c) **detecting anomalies** comprises:
+   - classifying an agent as **STABLE** when δ < τ_stable for at least N consecutive observations;
+   - classifying an agent as **DRIFTING** when δ ≥ τ_stable, indicating the agent is transitioning between states;
+   - classifying an agent as **ANOMALOUS** when δ remains elevated across multiple dimensions simultaneously;
+
+(d) **modulating security response** based on drift classification:
+   - permitting normal operations for STABLE agents;
+   - applying fractional weighting (e.g., 0.3i) to DRIFTING agents;
+   - quarantining or rejecting requests from ANOMALOUS agents.
+
+---
+
+## CLAIM 15 (Dependent - Phase-Modulated State Projection)
+
+The method of claim 14, wherein computing the observed state value comprises:
+
+(a) **generating a base state vector** s_base ∈ {0, 1, 2, 3, 4, 5}ⁿ for n dimensions;
+
+(b) **applying phase modulation** by computing:
+
+**s_effective = round(s_base × cos(θ) + s_base × sin(θ) × w_imag)**
+
+where:
+   - θ is a phase angle derived from a shared cryptographic key or temporal clock;
+   - w_imag is an imaginary weight component representing semantic uncertainty;
+
+(c) **extracting drift** as:
+
+**δ = |s_effective - round(s_effective)|**
+
+wherein:
+   - phase misalignment causes s_effective to shift away from integer boundaries;
+   - legitimate agents with synchronized phase produce δ ≈ 0;
+   - attackers without correct phase key produce elevated δ values.
+
+---
+
+## CLAIM 16 (Dependent - Hyperbolic Drift Amplification)
+
+The method of claim 14, wherein detecting anomalies further comprises:
+
+(a) **embedding state vectors** into a hyperbolic manifold using curvature parameter κ;
+
+(b) **computing hyperbolic distance** between observed drifting state and reference stable state:
+
+**d_hyp = (1/κ) × arccosh(1 + 2κ²||Δs||² / ((1-κ||s₁||²)(1-κ||s₂||²)))**
+
+where Δs represents the decimal drift component;
+
+(c) **amplifying drift detection** such that:
+   - small decimal drifts near integer states (interior region) produce bounded distances;
+   - identical decimal drifts near boundary states produce exponentially larger distances;
+   - enabling early detection of agents approaching "inhospitable zones."
+
+---
+
+## CLAIM 17 (Dependent - Temporal Drift Accumulation)
+
+The method of claim 14, wherein detecting anomalies comprises:
+
+(a) **maintaining a drift history buffer** storing at least M recent decimal drift values {δ₁, δ₂, ..., δₘ} for each agent;
+
+(b) **computing a cumulative drift score** using:
+
+**S_drift = Σᵢ (δᵢ × decay_factor^(M-i))**
+
+where decay_factor ∈ (0, 1) gives higher weight to recent drift;
+
+(c) **classifying drift patterns** as:
+   - **EXPLORATORY**: S_drift rises gradually then stabilizes (legitimate state transition);
+   - **OSCILLATORY**: S_drift fluctuates around threshold (probing behavior);
+   - **CHAOTIC**: S_drift increases monotonically without convergence (attack);
+
+(d) **applying differential responses**:
+   - exploratory patterns trigger monitoring windows;
+   - oscillatory patterns activate fractional trust weights;
+   - chaotic patterns initiate immediate quarantine.
+
+---
+
+## CLAIM 18 (Dependent - Multi-Dimensional Drift Correlation)
+
+The method of claim 14, wherein detecting anomalies comprises:
+
+(a) computing decimal drift components {δ₁, δ₂, δ₃, δ₄, δ₅, δ₆} across all six dimensions;
+
+(b) **detecting correlated drift** by identifying when:
+   - drift occurs **simultaneously** across 3+ dimensions;
+   - drift exhibits **phase relationships** with fixed phase offsets;
+
+(c) **maintaining a correlation matrix** C where C[i][j] measures temporal correlation between drift in dimension i and dimension j;
+
+(d) **flagging anomalies** when:
+   - off-diagonal correlation elements exceed threshold (coordinated manipulation);
+   - sinusoidal patterns detected across dimensions (reverse-engineering attempt).
+
+---
+
 ## MAPPING: Claims ↔ Test Coverage
 
 | Claim | Test File | Test Function | Result |
