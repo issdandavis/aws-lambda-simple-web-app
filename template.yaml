@@ -1,0 +1,585 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Spiralverse Protocol - AI Operating System Layer
+  16 vertices of universal truth, geometric integrity enforcement,
+  dimensional analysis reasoning lattice
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, staging, prod]
+  MasterKey:
+    Type: String
+    NoEcho: true
+    Description: Master key for cryptographic operations
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: nodejs18.x
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        MASTER_KEY: !Ref MasterKey
+
+Resources:
+  # ============================================================================
+  # Lambda Function
+  # ============================================================================
+  SpiralverseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub spiralverse-protocol-${Environment}
+      Handler: index.handler
+      CodeUri: .
+      Description: Spiralverse Protocol - Geometric AI OS Layer
+      Policies:
+        - CloudWatchLogsFullAccess
+        - AWSXRayDaemonWriteAccess
+      Events:
+        # Health & Core
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /health
+            Method: GET
+        Geometry:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /geometry
+            Method: GET
+
+        # Tesseract Core Endpoints
+        TesseractGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract
+            Method: GET
+        TesseractConstants:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/constants
+            Method: GET
+        TesseractParse:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/parse
+            Method: POST
+        TesseractAnalyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/analyze
+            Method: POST
+        TesseractCalculate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/calculate
+            Method: POST
+        TesseractLattice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/lattice
+            Method: GET
+        TesseractPlasma:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/plasma
+            Method: POST
+        TesseractTiger:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/tiger
+            Method: POST
+        TesseractVerifyState:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/verify-state
+            Method: POST
+        TesseractEnvironment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/environment
+            Method: POST
+        TesseractMission:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/mission
+            Method: POST
+        TesseractInterconnect:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/interconnect
+            Method: POST
+        TesseractDimensions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /tesseract/dimensions
+            Method: GET
+
+        # Ledger Endpoints (Geometric Integrity)
+        LedgerGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger
+            Method: GET
+        LedgerWrite:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/write
+            Method: POST
+        LedgerAudit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/audit
+            Method: GET
+        LedgerPath:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/path
+            Method: GET
+        LedgerQuery:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/query
+            Method: POST
+        LedgerGeodesic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/geodesic
+            Method: POST
+        LedgerZones:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/zones
+            Method: GET
+        LedgerReset:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/reset
+            Method: POST
+        LedgerHash:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ledger/hash
+            Method: POST
+
+        # Watermark Endpoints (Geodesic Authentication)
+        WatermarkGenerate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/generate
+            Method: POST
+        WatermarkVerify:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/verify
+            Method: POST
+        WatermarkQr:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/qr
+            Method: POST
+        WatermarkQrVerify:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/qr/verify
+            Method: POST
+        WatermarkBandit:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/bandit
+            Method: POST
+        WatermarkFingerprint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /watermark/fingerprint
+            Method: POST
+
+        # Synth Endpoints (Neural Audio)
+        SynthPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth
+            Method: POST
+        SynthGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth
+            Method: GET
+        SynthRaw:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth/raw
+            Method: POST
+        SynthVerify:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth/verify
+            Method: POST
+        SynthLexicon:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth/lexicon
+            Method: GET
+        SynthCompare:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /synth/compare
+            Method: POST
+
+        # Core Protocol Endpoints
+        Ceremony:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /ceremony
+            Method: POST
+        Derive:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /derive
+            Method: POST
+        Authorize:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /authorize
+            Method: POST
+        Simulate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /simulate
+            Method: POST
+        Analyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /analyze
+            Method: POST
+        Spin:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /spin
+            Method: POST
+        Raytrace:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /raytrace
+            Method: POST
+        Dimensions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /dimensions
+            Method: ANY
+        Healing:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /healing
+            Method: GET
+        Languages:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /languages
+            Method: ANY
+        Agents:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /agents
+            Method: ANY
+        Teams:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /teams
+            Method: ANY
+        Presets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /presets
+            Method: GET
+        Drift:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SpiralverseApi
+            Path: /drift
+            Method: GET
+
+  # ============================================================================
+  # API Gateway
+  # ============================================================================
+  SpiralverseApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub spiralverse-api-${Environment}
+      StageName: !Ref Environment
+      Description: Spiralverse Protocol API - Geometric AI OS
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Api-Key,Authorization'"
+        AllowOrigin: "'*'"
+      Auth:
+        ApiKeyRequired: false
+        DefaultAuthorizer: NONE
+      TracingEnabled: true
+      MethodSettings:
+        - ResourcePath: /*
+          HttpMethod: '*'
+          LoggingLevel: INFO
+          DataTraceEnabled: true
+          MetricsEnabled: true
+
+  # API Key for optional security
+  SpiralverseApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn: SpiralverseApiStage
+    Properties:
+      Name: !Sub spiralverse-key-${Environment}
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref SpiralverseApi
+          StageName: !Ref Environment
+
+  # ============================================================================
+  # CloudWatch Dashboard
+  # ============================================================================
+  SpiralverseDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub Spiralverse-${Environment}
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Request Count by Endpoint",
+                "metrics": [
+                  ["AWS/ApiGateway", "Count", "ApiName", "spiralverse-api-${Environment}", {"stat": "Sum", "period": 300}]
+                ],
+                "view": "timeSeries",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Average Latency",
+                "metrics": [
+                  ["AWS/ApiGateway", "Latency", "ApiName", "spiralverse-api-${Environment}", {"stat": "Average", "period": 300}],
+                  ["AWS/ApiGateway", "IntegrationLatency", "ApiName", "spiralverse-api-${Environment}", {"stat": "Average", "period": 300}]
+                ],
+                "view": "timeSeries",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Error Rates",
+                "metrics": [
+                  ["AWS/ApiGateway", "4XXError", "ApiName", "spiralverse-api-${Environment}", {"stat": "Sum", "period": 300, "color": "#ff7f0e"}],
+                  ["AWS/ApiGateway", "5XXError", "ApiName", "spiralverse-api-${Environment}", {"stat": "Sum", "period": 300, "color": "#d62728"}]
+                ],
+                "view": "timeSeries",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Duration",
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "spiralverse-protocol-${Environment}", {"stat": "Average", "period": 300}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "spiralverse-protocol-${Environment}", {"stat": "Maximum", "period": 300}]
+                ],
+                "view": "timeSeries",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Invocations & Errors",
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "spiralverse-protocol-${Environment}", {"stat": "Sum", "period": 300}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "spiralverse-protocol-${Environment}", {"stat": "Sum", "period": 300, "color": "#d62728"}]
+                ],
+                "view": "timeSeries",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 12,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "SNAP Events (Geometric Violations)",
+                "query": "SOURCE '/aws/lambda/spiralverse-protocol-${Environment}' | fields @timestamp, @message | filter @message like /SNAP|snap|Snap/ | sort @timestamp desc | limit 50",
+                "region": "${AWS::Region}",
+                "view": "table"
+              }
+            }
+          ]
+        }
+
+  # ============================================================================
+  # CloudWatch Alarms
+  # ============================================================================
+  HighErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub Spiralverse-HighErrors-${Environment}
+      AlarmDescription: High error rate detected in Spiralverse API
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub spiralverse-api-${Environment}
+
+  HighLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub Spiralverse-HighLatency-${Environment}
+      AlarmDescription: High latency detected in Spiralverse API
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub spiralverse-api-${Environment}
+
+  # ============================================================================
+  # S3 Bucket for Test Interface
+  # ============================================================================
+  TestInterfaceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub spiralverse-test-ui-${AWS::AccountId}-${Environment}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  TestInterfaceBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TestInterfaceBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicRead
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub ${TestInterfaceBucket.Arn}/*
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub https://${SpiralverseApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+
+  LambdaFunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt SpiralverseFunction.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaArn
+
+  TestInterfaceUrl:
+    Description: S3 Test Interface URL
+    Value: !GetAtt TestInterfaceBucket.WebsiteURL
+    Export:
+      Name: !Sub ${AWS::StackName}-TestUI
+
+  DashboardUrl:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=Spiralverse-${Environment}
+
+  ApiKeyId:
+    Description: API Key ID (retrieve value from console)
+    Value: !Ref SpiralverseApiKey
