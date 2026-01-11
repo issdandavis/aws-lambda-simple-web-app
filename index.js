@@ -1488,6 +1488,587 @@ const TrajectoryAuthorization = {
 };
 
 // ============================================================================
+// Neural Synthesizer - Hear the Thoughts of the Network
+// Maps 10D manifold state to audio synthesis parameters
+// The torus surface becomes a wavetable; curvature becomes wave folding
+// ============================================================================
+
+const NeuralSynthesizer = {
+  // Audio parameters
+  SAMPLE_RATE: 44100,
+  BASE_FREQ: 432.0,  // A4 tuned to 432Hz (natural resonance)
+  DURATION: 1.0,     // Default duration in seconds
+
+  // Conlang lexicon mapped to frequency ratios (harmonic series)
+  LEXICON: {
+    // Primary words - pure harmonic ratios
+    korah: { ratio: 1/1, meaning: 'origin', harmonic: 1 },
+    aelin: { ratio: 9/8, meaning: 'flow', harmonic: 9 },
+    dahru: { ratio: 5/4, meaning: 'light', harmonic: 5 },
+    veleth: { ratio: 4/3, meaning: 'bridge', harmonic: 4 },
+    myrrh: { ratio: 3/2, meaning: 'sacred', harmonic: 3 },
+    soleth: { ratio: 5/3, meaning: 'sun', harmonic: 5 },
+    luneth: { ratio: 15/8, meaning: 'moon', harmonic: 15 },
+
+    // Shadow words - subharmonic ratios (negative space)
+    shadow: { ratio: 1/2, meaning: 'descent', harmonic: -1 },
+    gleam: { ratio: 2/3, meaning: 'reflection', harmonic: -2 },
+    whisper: { ratio: 3/4, meaning: 'hidden', harmonic: -3 },
+    void: { ratio: 4/5, meaning: 'absence', harmonic: -4 },
+
+    // Bridge words - irrational ratios (tension/resolution)
+    spiral: { ratio: Math.sqrt(2), meaning: 'transform', harmonic: 0 },
+    paradox: { ratio: Math.PI / 2, meaning: 'mystery', harmonic: 0 },
+    infinity: { ratio: Math.E / 2, meaning: 'endless', harmonic: 0 }
+  },
+
+  // 10D dimension-to-synth parameter mapping (matches HyperManifold.DIMENSIONS)
+  // Order: semantic, intent, emotion, relationship, temporal, spatial, security, creative, coherence, spin
+  DIMENSION_MAP: {
+    0:  { name: 'semantic',     param: 'frequency',   range: [0.5, 2.0],    description: 'Base pitch multiplier' },
+    1:  { name: 'intent',       param: 'waveform',    range: [0, 4],        description: 'Wave shape (0=sine,1=tri,2=saw,3=square,4=torus)' },
+    2:  { name: 'emotion',      param: 'brightness',  range: [0.1, 1.0],    description: 'Filter cutoff (harmonic content)' },
+    3:  { name: 'relationship', param: 'reverb',      range: [0, 1],        description: 'Space/ambience (social connection)' },
+    4:  { name: 'temporal',     param: 'lfoRate',     range: [0.1, 20.0],   description: 'Vibrato/tremolo speed' },
+    5:  { name: 'spatial',      param: 'pan',         range: [-1, 1],       description: 'Stereo position' },
+    6:  { name: 'security',     param: 'harmonics',   range: [1, 16],       description: 'Harmonic partials count (complexity)' },
+    7:  { name: 'creative',     param: 'foldAmount',  range: [0, 5],        description: 'Wave folding intensity' },
+    8:  { name: 'coherence',    param: 'amplitude',   range: [0.3, 1],      description: 'Overall volume (consistency)' },
+    9:  { name: 'spin',         param: 'attack',      range: [0.001, 0.3],  description: 'Envelope attack time (verification)' }
+  },
+
+  // Generate time array
+  timeGrid(duration = this.DURATION, sampleRate = this.SAMPLE_RATE) {
+    const samples = Math.floor(duration * sampleRate);
+    const t = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) {
+      t[i] = i / sampleRate;
+    }
+    return t;
+  },
+
+  // Basic waveform generators (zero-dependency)
+  waveforms: {
+    sine: (phase) => Math.sin(phase),
+    triangle: (phase) => 2 * Math.abs(2 * (phase / (2 * Math.PI) % 1) - 1) - 1,
+    sawtooth: (phase) => 2 * (phase / (2 * Math.PI) % 1) - 1,
+    square: (phase) => Math.sin(phase) >= 0 ? 1 : -1,
+
+    // Torus waveform - uses Gaussian curvature for shape
+    torus: (phase, theta = 0) => {
+      const K = TorusGeometry.gaussianCurvature(theta);
+      const base = Math.sin(phase);
+      // Curvature modulates wave shape
+      // K > 0: sharper peaks (security)
+      // K < 0: softer, rounder (creative)
+      if (K > 0) {
+        return Math.sign(base) * Math.pow(Math.abs(base), 1 / (1 + K * 5));
+      } else {
+        return Math.sign(base) * Math.pow(Math.abs(base), 1 + Math.abs(K) * 2);
+      }
+    }
+  },
+
+  // Wave folding - distortion based on curvature
+  waveFold(sample, amount) {
+    if (amount <= 0) return sample;
+    // Soft clip then fold
+    let s = sample * (1 + amount);
+    while (Math.abs(s) > 1) {
+      if (s > 1) s = 2 - s;
+      else if (s < -1) s = -2 - s;
+    }
+    return s;
+  },
+
+  // ADSR envelope generator
+  envelope(t, attack, decay = 0.1, sustain = 0.7, release = 0.2, duration = 1.0) {
+    const attackEnd = attack;
+    const decayEnd = attack + decay;
+    const sustainEnd = duration - release;
+
+    if (t < attackEnd) return t / attack;
+    if (t < decayEnd) return 1 - (1 - sustain) * (t - attackEnd) / decay;
+    if (t < sustainEnd) return sustain;
+    if (t < duration) return sustain * (duration - t) / release;
+    return 0;
+  },
+
+  // Convert 10D manifold position to synth parameters
+  manifoldToSynth(embedding) {
+    const params = {};
+
+    // Process all 10 dimensions
+    for (let i = 0; i < 10; i++) {
+      const mapping = this.DIMENSION_MAP[i];
+      if (!mapping) continue;
+
+      // Get angle value from embedding (array of 10 angles)
+      const angle = embedding.angles ? embedding.angles[i] : 0;
+
+      // Normalize to 0-1 using sine (maps full circle to smooth 0-1-0 range)
+      const normalized = (Math.sin(angle) + 1) / 2;
+
+      // Scale to parameter range
+      const [min, max] = mapping.range;
+      params[mapping.param] = min + normalized * (max - min);
+    }
+
+    return params;
+  },
+
+  // Parse conlang phrase to frequency sequence
+  parsePhrase(phrase) {
+    const words = phrase.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+    return words.map(word => {
+      const entry = this.LEXICON[word];
+      if (entry) {
+        return {
+          word,
+          frequency: this.BASE_FREQ * entry.ratio,
+          ratio: entry.ratio,
+          meaning: entry.meaning,
+          harmonic: entry.harmonic
+        };
+      }
+      // Unknown word - use hash for deterministic frequency
+      const hash = crypto.createHash('md5').update(word).digest();
+      const ratio = 1 + (hash[0] / 255) * 0.5;  // 1.0 to 1.5 range
+      return {
+        word,
+        frequency: this.BASE_FREQ * ratio,
+        ratio,
+        meaning: 'unknown',
+        harmonic: hash[1] % 16 + 1
+      };
+    });
+  },
+
+  // Fisher-Yates shuffle with deterministic key-derived randomness
+  // This scrambles the word order cryptographically based on the key
+  feistelPermute(sequence, key) {
+    if (sequence.length < 2) return sequence;
+
+    // Create a copy to shuffle
+    const arr = [...sequence];
+
+    // Generate deterministic random bytes from key
+    const keyHash = crypto.createHash('sha256').update(key).digest();
+
+    // Fisher-Yates shuffle using key-derived indices
+    for (let i = arr.length - 1; i > 0; i--) {
+      // Use key bytes to determine swap index (deterministic)
+      const keyByte = keyHash[i % keyHash.length];
+      const j = keyByte % (i + 1);
+
+      // Swap elements
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+
+    return arr;
+  },
+
+  // Generate audio samples from conlang phrase
+  synthesize(phrase, options = {}) {
+    const {
+      duration = this.DURATION,
+      sampleRate = this.SAMPLE_RATE,
+      embedding = null,  // Optional 10D embedding for parameter control
+      mode = 'ADAPTIVE',  // STRICT (odd harmonics), ADAPTIVE (all), PROBE (fundamental)
+      masterKey = 'spiralverse-neural-synth'
+    } = options;
+
+    // Parse phrase to frequency sequence
+    const sequence = this.parsePhrase(phrase);
+
+    // Apply Feistel permutation
+    const permuted = this.feistelPermute(sequence, masterKey);
+
+    // Get synth parameters from embedding or defaults
+    let synthParams = {
+      frequency: 1.0,
+      waveform: 4,  // torus
+      brightness: 0.7,
+      lfoRate: 3.0,
+      pan: 0,
+      foldAmount: 1.0,
+      harmonics: 8,
+      reverb: 0.3,
+      attack: 0.01,
+      amplitude: 0.8
+    };
+
+    if (embedding) {
+      synthParams = { ...synthParams, ...this.manifoldToSynth(embedding) };
+    }
+
+    // Determine harmonic mask by mode
+    const harmonicMask = {
+      STRICT: [1, 3, 5, 7, 9, 11, 13, 15],  // Odd harmonics only (hollow sound)
+      ADAPTIVE: Array.from({ length: Math.floor(synthParams.harmonics) }, (_, i) => i + 1),
+      PROBE: [1]  // Fundamental only
+    }[mode] || [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // Generate time grid
+    const t = this.timeGrid(duration, sampleRate);
+    const samples = new Float32Array(t.length);
+
+    // Segment duration per word
+    const segDuration = duration / permuted.length;
+    const segSamples = Math.floor(segDuration * sampleRate);
+
+    // Get current theta from embedding for torus waveform
+    const theta = embedding?.angles?.[0] || 0;
+
+    // Select waveform function
+    const waveformIdx = Math.floor(synthParams.waveform);
+    const waveformNames = ['sine', 'triangle', 'sawtooth', 'square', 'torus'];
+    const waveformFn = this.waveforms[waveformNames[waveformIdx]] || this.waveforms.torus;
+
+    // Synthesize each word segment
+    for (let seg = 0; seg < permuted.length; seg++) {
+      const word = permuted[seg];
+      const segStart = seg * segSamples;
+      const segEnd = Math.min(segStart + segSamples, samples.length);
+      const baseFreq = word.frequency * synthParams.frequency;
+
+      for (let i = segStart; i < segEnd; i++) {
+        const localT = (i - segStart) / sampleRate;
+        let sample = 0;
+
+        // Additive synthesis with harmonic mask
+        for (const h of harmonicMask) {
+          const freq = baseFreq * h;
+          const phase = 2 * Math.PI * freq * t[i];
+
+          // Apply LFO modulation
+          const lfoPhase = 2 * Math.PI * synthParams.lfoRate * t[i];
+          const lfoMod = 1 + 0.1 * Math.sin(lfoPhase);
+
+          // Generate harmonic with brightness falloff
+          const harmonicAmp = Math.pow(synthParams.brightness, h - 1) / h;
+
+          if (waveformIdx === 4) {
+            sample += harmonicAmp * this.waveforms.torus(phase * lfoMod, theta);
+          } else {
+            sample += harmonicAmp * waveformFn(phase * lfoMod);
+          }
+        }
+
+        // Apply wave folding based on creative dimension
+        sample = this.waveFold(sample, synthParams.foldAmount);
+
+        // Apply envelope
+        const env = this.envelope(localT, synthParams.attack, 0.1, 0.7, 0.1, segDuration);
+        sample *= env;
+
+        // Accumulate
+        samples[i] += sample * synthParams.amplitude;
+      }
+    }
+
+    // Normalize to prevent clipping
+    let maxAbs = 0;
+    for (let i = 0; i < samples.length; i++) {
+      if (Math.abs(samples[i]) > maxAbs) maxAbs = Math.abs(samples[i]);
+    }
+    if (maxAbs > 0) {
+      for (let i = 0; i < samples.length; i++) {
+        samples[i] /= maxAbs;
+      }
+    }
+
+    // Apply simple reverb (feedback delay)
+    if (synthParams.reverb > 0) {
+      const delayMs = 50;
+      const delaySamples = Math.floor(delayMs * sampleRate / 1000);
+      const feedback = synthParams.reverb * 0.5;
+      for (let i = delaySamples; i < samples.length; i++) {
+        samples[i] += samples[i - delaySamples] * feedback;
+      }
+      // Re-normalize
+      maxAbs = 0;
+      for (let i = 0; i < samples.length; i++) {
+        if (Math.abs(samples[i]) > maxAbs) maxAbs = Math.abs(samples[i]);
+      }
+      if (maxAbs > 0) {
+        for (let i = 0; i < samples.length; i++) {
+          samples[i] /= maxAbs;
+        }
+      }
+    }
+
+    return {
+      samples,
+      sampleRate,
+      duration,
+      sequence: permuted.map(w => w.word),
+      originalSequence: sequence.map(w => w.word),
+      synthParams,
+      harmonicMask,
+      mode
+    };
+  },
+
+  // Generate fingerprint from audio (FFT-based spectral analysis)
+  fingerprint(samples, sampleRate = this.SAMPLE_RATE) {
+    const N = samples.length;
+
+    // Simple DFT for dominant frequencies (no external deps)
+    const numBins = 64;
+    const spectrum = new Float32Array(numBins);
+    const freqResolution = sampleRate / N;
+
+    for (let k = 0; k < numBins; k++) {
+      let real = 0, imag = 0;
+      const targetFreq = (k + 1) * freqResolution * 10;  // Focus on audible range
+
+      for (let n = 0; n < N; n++) {
+        const phase = -2 * Math.PI * k * n / numBins;
+        real += samples[n] * Math.cos(phase);
+        imag += samples[n] * Math.sin(phase);
+      }
+
+      spectrum[k] = Math.sqrt(real * real + imag * imag) / N;
+    }
+
+    // Find peaks
+    const peaks = [];
+    for (let i = 1; i < spectrum.length - 1; i++) {
+      if (spectrum[i] > spectrum[i-1] && spectrum[i] > spectrum[i+1] && spectrum[i] > 0.01) {
+        peaks.push({ bin: i, magnitude: spectrum[i] });
+      }
+    }
+    peaks.sort((a, b) => b.magnitude - a.magnitude);
+
+    // Zero crossing rate (pitch indicator)
+    let zeroCrossings = 0;
+    for (let i = 1; i < samples.length; i++) {
+      if ((samples[i] >= 0) !== (samples[i-1] >= 0)) zeroCrossings++;
+    }
+    const zcr = zeroCrossings / samples.length;
+
+    // RMS energy
+    let sumSq = 0;
+    for (let i = 0; i < samples.length; i++) {
+      sumSq += samples[i] * samples[i];
+    }
+    const rms = Math.sqrt(sumSq / samples.length);
+
+    // Spectral centroid (brightness)
+    let weightedSum = 0, totalMag = 0;
+    for (let k = 0; k < spectrum.length; k++) {
+      weightedSum += k * spectrum[k];
+      totalMag += spectrum[k];
+    }
+    const centroid = totalMag > 0 ? weightedSum / totalMag : 0;
+
+    // Create fingerprint vector
+    const fp = {
+      peaks: peaks.slice(0, 8).map(p => ({ bin: p.bin, mag: Math.round(p.magnitude * 1000) / 1000 })),
+      zcr: Math.round(zcr * 10000) / 10000,
+      rms: Math.round(rms * 10000) / 10000,
+      centroid: Math.round(centroid * 100) / 100,
+      duration: samples.length / sampleRate
+    };
+
+    // Hash for quick comparison
+    const fpString = JSON.stringify(fp);
+    fp.hash = crypto.createHash('sha256').update(fpString).digest('hex').slice(0, 16);
+
+    return fp;
+  },
+
+  // Create signed envelope for audio transmission
+  createEnvelope(phrase, synthResult, masterKey = 'spiralverse') {
+    const nonce = crypto.randomBytes(12);
+    const timestamp = Date.now();
+    const fingerprint = this.fingerprint(synthResult.samples, synthResult.sampleRate);
+
+    const header = {
+      version: '3',
+      type: 'neural-audio',
+      mode: synthResult.mode,
+      timestamp,
+      nonce: nonce.toString('base64'),
+      duration: synthResult.duration
+    };
+
+    const payload = {
+      phrase,
+      sequence: synthResult.sequence,
+      fingerprint,
+      synthParams: synthResult.synthParams
+    };
+
+    // Canonical form for signing
+    const canonical = [
+      'v3',
+      'neural-audio',
+      synthResult.mode,
+      timestamp.toString(),
+      nonce.toString('base64'),
+      JSON.stringify(payload, Object.keys(payload).sort())
+    ].join('.');
+
+    const signature = crypto.createHmac('sha256', masterKey)
+      .update(canonical)
+      .digest('hex');
+
+    return {
+      header,
+      payload,
+      signature,
+      verified: true  // Self-verification
+    };
+  },
+
+  // Verify envelope signature
+  verifyEnvelope(envelope, masterKey = 'spiralverse') {
+    const { header, payload, signature } = envelope;
+
+    // Check timestamp freshness (60 second window)
+    const age = Date.now() - header.timestamp;
+    if (age > 60000 || age < -5000) {
+      return { valid: false, reason: 'envelope_expired', age };
+    }
+
+    // Reconstruct canonical form
+    const canonical = [
+      'v3',
+      'neural-audio',
+      header.mode,
+      header.timestamp.toString(),
+      header.nonce,
+      JSON.stringify(payload, Object.keys(payload).sort())
+    ].join('.');
+
+    const expected = crypto.createHmac('sha256', masterKey)
+      .update(canonical)
+      .digest('hex');
+
+    const valid = crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expected, 'hex')
+    );
+
+    return { valid, reason: valid ? 'signature_verified' : 'signature_mismatch' };
+  },
+
+  // Encode samples as WAV format (base64)
+  toWav(samples, sampleRate = this.SAMPLE_RATE) {
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const bytesPerSample = bitsPerSample / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = samples.length * bytesPerSample;
+    const fileSize = 44 + dataSize;
+
+    const buffer = Buffer.alloc(fileSize);
+    let offset = 0;
+
+    // RIFF header
+    buffer.write('RIFF', offset); offset += 4;
+    buffer.writeUInt32LE(fileSize - 8, offset); offset += 4;
+    buffer.write('WAVE', offset); offset += 4;
+
+    // fmt chunk
+    buffer.write('fmt ', offset); offset += 4;
+    buffer.writeUInt32LE(16, offset); offset += 4;  // Chunk size
+    buffer.writeUInt16LE(1, offset); offset += 2;   // PCM format
+    buffer.writeUInt16LE(numChannels, offset); offset += 2;
+    buffer.writeUInt32LE(sampleRate, offset); offset += 4;
+    buffer.writeUInt32LE(byteRate, offset); offset += 4;
+    buffer.writeUInt16LE(blockAlign, offset); offset += 2;
+    buffer.writeUInt16LE(bitsPerSample, offset); offset += 2;
+
+    // data chunk
+    buffer.write('data', offset); offset += 4;
+    buffer.writeUInt32LE(dataSize, offset); offset += 4;
+
+    // Write samples as 16-bit signed integers
+    for (let i = 0; i < samples.length; i++) {
+      const sample = Math.max(-1, Math.min(1, samples[i]));
+      const intSample = Math.floor(sample * 32767);
+      buffer.writeInt16LE(intSample, offset);
+      offset += 2;
+    }
+
+    return buffer.toString('base64');
+  },
+
+  // Full neural sonification: phrase + 10D state = audio
+  sonify(phrase, state = {}, options = {}) {
+    // Create 10D embedding from state using HyperManifold.analyze
+    const context = {
+      semantic: state.semantic || phrase,
+      intent: state.intent || 'communicate',
+      emotion: state.emotion || 0.5,
+      timestamp: state.temporal || Date.now(),
+      location: state.spatial || 'default',
+      creativity: state.creative || 0.5,
+      coherence: state.coherence || 0.8,
+      ...state.context
+    };
+
+    const analysis = HyperManifold.analyze(context);
+    const embedding = {
+      angles: analysis.angles,
+      position: analysis.position,
+      curvature: analysis.curvature,
+      geodesicNorm: Math.sqrt(analysis.angles.reduce((sum, a) => sum + a * a, 0))
+    };
+
+    // Synthesize with embedding-derived parameters
+    const synthResult = this.synthesize(phrase, {
+      ...options,
+      embedding
+    });
+
+    // Generate fingerprint and envelope
+    const fingerprint = this.fingerprint(synthResult.samples, synthResult.sampleRate);
+    const envelope = this.createEnvelope(phrase, synthResult, options.masterKey);
+
+    // Compute Gaussian curvature at first dimension angle (neural "mood")
+    const theta = embedding.angles[0];
+    const curvature2D = TorusGeometry.gaussianCurvature(theta);
+    const zone = TorusGeometry.classifyZone(theta);
+
+    return {
+      phrase,
+      embedding: {
+        angles: embedding.angles.map(a => Math.round(a * 1000) / 1000),
+        geodesicNorm: Math.round(embedding.geodesicNorm * 1000) / 1000,
+        totalCurvature: Math.round(embedding.curvature.total * 1000) / 1000
+      },
+      synthesis: {
+        sequence: synthResult.sequence,
+        originalSequence: synthResult.originalSequence,
+        mode: synthResult.mode,
+        duration: synthResult.duration,
+        sampleRate: synthResult.sampleRate,
+        sampleCount: synthResult.samples.length
+      },
+      fingerprint,
+      envelope,
+      geometry: {
+        theta: Math.round(theta * 1000) / 1000,
+        curvature2D: Math.round(curvature2D * 10000) / 10000,
+        zone: zone.zone,
+        interpretation: curvature2D > 0 ?
+          'Security-focused neural state (sharp, defined thoughts)' :
+          curvature2D < 0 ?
+          'Creative-exploratory neural state (fluid, generative thoughts)' :
+          'Transitional neural state (balanced, adaptive thoughts)'
+      },
+      // Include WAV for playback (base64 encoded)
+      audioWav: this.toWav(synthResult.samples, synthResult.sampleRate)
+    };
+  }
+};
+
+// ============================================================================
 // Lambda Handler
 // ============================================================================
 
@@ -1785,13 +2366,141 @@ exports.handler = async (event) => {
       }));
     }
 
+    // ========================================================================
+    // Neural Synthesizer Endpoints - Hear the Thoughts of the Network
+    // ========================================================================
+
+    // POST /synth - Full neural sonification (phrase + state = audio)
+    if (method === 'POST' && path === '/synth') {
+      const { phrase, state, mode, duration, includeWav } = body;
+      if (!phrase) return respond(400, { error: 'Required: phrase (conlang text to sonify)' });
+
+      const result = NeuralSynthesizer.sonify(phrase, state || {}, {
+        mode: mode || 'ADAPTIVE',
+        duration: duration || 1.0
+      });
+
+      // Optionally exclude WAV to reduce response size
+      if (includeWav === false) {
+        delete result.audioWav;
+      }
+
+      return respond(200, result);
+    }
+
+    // GET /synth - Sonify with query params
+    if (method === 'GET' && path === '/synth') {
+      const phrase = event.queryStringParameters?.phrase || 'korah aelin dahru';
+      const mode = event.queryStringParameters?.mode || 'ADAPTIVE';
+      const duration = parseFloat(event.queryStringParameters?.duration || '1.0');
+
+      const result = NeuralSynthesizer.sonify(phrase, {}, { mode, duration });
+
+      // Don't include WAV in GET (too large for URL-based requests)
+      delete result.audioWav;
+
+      return respond(200, result);
+    }
+
+    // POST /synth/raw - Raw synthesis without 10D embedding
+    if (method === 'POST' && path === '/synth/raw') {
+      const { phrase, mode, duration } = body;
+      if (!phrase) return respond(400, { error: 'Required: phrase' });
+
+      const result = NeuralSynthesizer.synthesize(phrase, {
+        mode: mode || 'ADAPTIVE',
+        duration: duration || 1.0
+      });
+
+      const fingerprint = NeuralSynthesizer.fingerprint(result.samples, result.sampleRate);
+      const wav = body.includeWav !== false ? NeuralSynthesizer.toWav(result.samples, result.sampleRate) : null;
+
+      return respond(200, {
+        sequence: result.sequence,
+        originalSequence: result.originalSequence,
+        mode: result.mode,
+        duration: result.duration,
+        sampleCount: result.samples.length,
+        synthParams: result.synthParams,
+        harmonicMask: result.harmonicMask,
+        fingerprint,
+        audioWav: wav
+      });
+    }
+
+    // POST /synth/verify - Verify audio envelope signature
+    if (method === 'POST' && path === '/synth/verify') {
+      const { envelope, masterKey } = body;
+      if (!envelope) return respond(400, { error: 'Required: envelope object' });
+
+      const result = NeuralSynthesizer.verifyEnvelope(envelope, masterKey || 'spiralverse');
+      return respond(result.valid ? 200 : 403, result);
+    }
+
+    // GET /synth/lexicon - Get conlang lexicon with harmonic mappings
+    if (method === 'GET' && path === '/synth/lexicon') {
+      const lexicon = Object.entries(NeuralSynthesizer.LEXICON).map(([word, data]) => ({
+        word,
+        frequency: Math.round(NeuralSynthesizer.BASE_FREQ * data.ratio * 100) / 100,
+        ratio: data.ratio,
+        meaning: data.meaning,
+        harmonic: data.harmonic,
+        type: data.harmonic > 0 ? 'primary' : data.harmonic < 0 ? 'shadow' : 'bridge'
+      }));
+
+      return respond(200, {
+        baseFrequency: NeuralSynthesizer.BASE_FREQ,
+        tuning: '432Hz (natural resonance)',
+        lexicon,
+        modes: {
+          STRICT: 'Odd harmonics only (hollow, clarinet-like)',
+          ADAPTIVE: 'All harmonics (rich, full spectrum)',
+          PROBE: 'Fundamental only (pure sine)'
+        },
+        dimensionMapping: NeuralSynthesizer.DIMENSION_MAP
+      });
+    }
+
+    // POST /synth/compare - Compare two phrases acoustically
+    if (method === 'POST' && path === '/synth/compare') {
+      const { phrase1, phrase2, mode } = body;
+      if (!phrase1 || !phrase2) return respond(400, { error: 'Required: phrase1, phrase2' });
+
+      const synth1 = NeuralSynthesizer.synthesize(phrase1, { mode: mode || 'ADAPTIVE', duration: 0.5 });
+      const synth2 = NeuralSynthesizer.synthesize(phrase2, { mode: mode || 'ADAPTIVE', duration: 0.5 });
+
+      const fp1 = NeuralSynthesizer.fingerprint(synth1.samples, synth1.sampleRate);
+      const fp2 = NeuralSynthesizer.fingerprint(synth2.samples, synth2.sampleRate);
+
+      // Compute acoustic similarity
+      const zcrDiff = Math.abs(fp1.zcr - fp2.zcr);
+      const rmsDiff = Math.abs(fp1.rms - fp2.rms);
+      const centroidDiff = Math.abs(fp1.centroid - fp2.centroid);
+
+      // Normalize to 0-1 similarity score
+      const similarity = 1 - Math.min(1, (zcrDiff * 10 + rmsDiff * 5 + centroidDiff / 32) / 3);
+
+      return respond(200, {
+        phrase1: { text: phrase1, sequence: synth1.sequence, fingerprint: fp1 },
+        phrase2: { text: phrase2, sequence: synth2.sequence, fingerprint: fp2 },
+        comparison: {
+          similarity: Math.round(similarity * 1000) / 1000,
+          zcrDifference: Math.round(zcrDiff * 10000) / 10000,
+          rmsDifference: Math.round(rmsDiff * 10000) / 10000,
+          centroidDifference: Math.round(centroidDiff * 100) / 100,
+          hashMatch: fp1.hash === fp2.hash
+        }
+      });
+    }
+
     return respond(404, {
       error: 'Not found',
       endpoints: [
         '/health', '/geometry', '/ceremony', '/derive', '/authorize',
         '/webhook', '/simulate', '/analyze', '/spin', '/raytrace',
         '/dimensions', '/healing', '/languages', '/agents', '/teams',
-        '/presets', '/drift', '/verify'
+        '/presets', '/drift', '/verify',
+        '/synth', '/synth/raw', '/synth/verify', '/synth/lexicon', '/synth/compare'
       ]
     });
   } catch (err) {
