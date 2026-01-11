@@ -1,5 +1,6 @@
 test_results.json
 scbe_validation_results.json
 quasicrystal_validation_results.json
+gravity_intent_validation.json
 __pycache__/
 *.pyc
