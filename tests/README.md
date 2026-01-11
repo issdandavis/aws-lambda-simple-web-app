@@ -47,8 +47,9 @@ python gravity_intent_evolution.py
 | `test_scbe_validation.py` | 38 | Harmonic scaling & 6-gate pipeline | ~0.2s |
 | `quasicrystal_auth.py` | 25 | Icosahedral geometry authentication | ~0.5s |
 | `gravity_intent_evolution.py` | 18 | N-body intent simulation | ~1.2s |
+| `multi_state_spin_encoding.py` | 7 | Base-6 spin modulation & quark strands | ~0.1s |
 
-**Total: 158 tests in ~2.4 seconds**
+**Total: 165 tests in ~2.5 seconds**
 
 ---
 
@@ -129,6 +130,25 @@ python gravity_intent_evolution.py
 - Lyapunov exponent calculation (chaos verification)
 - Avalanche effect testing
 - Hybrid Morse+DNA encoding
+
+### 6. Multi-State Spin Encoding
+
+```bash
+python multi_state_spin_encoding.py
+```
+
+**Tests Include:**
+- Base-6 multi-state encoding (0-5 intent axes)
+- Complex spin modulation (e^(iθ) phase)
+- Quark-like strand confinement
+- CRISPR-style gene editing validation
+- Hyperbolic distance amplification
+- Defense layer integration (camera→door→dog→gun)
+
+**Key Metrics:**
+- Entropy: 2.58 bits/symbol (vs 1.0 binary)
+- State space: 3.49e+9x larger than binary
+- With spin: ~222 bits per 20-symbol strand
 
 ---
 
