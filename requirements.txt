@@ -1,0 +1,14 @@
+# SCBE-AETHERMOORE Requirements
+# Core dependency
+numpy>=1.20.0
+
+# For production post-quantum crypto (optional - currently simulated)
+# pqcrypto>=0.1.0
+# liboqs-python>=0.7.0
+
+# For testing
+pytest>=7.0.0
+
+# For web deployment (optional)
+# flask>=2.0.0
+# gunicorn>=20.0.0
