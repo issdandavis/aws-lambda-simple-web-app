@@ -616,5 +616,244 @@ def test_dimensional_analysis():
     return True
 
 
+# =============================================================================
+# 5-LEVEL THREAT SCALING SIMULATION
+# =============================================================================
+
+def create_scaled_threat(base_threat: ThreatModel, level: int) -> ThreatModel:
+    """
+    Scale a threat model by intensity level (1-5).
+
+    Level 1: Baseline (current technology)
+    Level 2: Near-term (5 year projection)
+    Level 3: Advanced (10 year projection)
+    Level 4: Extreme (nation-state + quantum)
+    Level 5: Theoretical maximum (physical limits)
+    """
+    # Scaling factors for each level
+    scaling = {
+        1: {'cap_mult': 1.0,    'growth_mult': 1.0,   'coord_mult': 1.0,   'name': 'BASELINE'},
+        2: {'cap_mult': 10.0,   'growth_mult': 1.2,   'coord_mult': 10.0,  'name': 'NEAR-TERM'},
+        3: {'cap_mult': 100.0,  'growth_mult': 1.5,   'coord_mult': 100.0, 'name': 'ADVANCED'},
+        4: {'cap_mult': 1000.0, 'growth_mult': 2.0,   'coord_mult': 1000.0,'name': 'EXTREME'},
+        5: {'cap_mult': 1e6,    'growth_mult': 3.0,   'coord_mult': 1e6,   'name': 'THEORETICAL'},
+    }
+
+    s = scaling[level]
+    return ThreatModel(
+        threat_type=base_threat.threat_type,
+        initial_capability=base_threat.initial_capability * s['cap_mult'],
+        growth_rate=base_threat.growth_rate * s['growth_mult'],
+        quantum_speedup=base_threat.quantum_speedup,
+        coordination_factor=base_threat.coordination_factor * s['coord_mult']
+    )
+
+
+def create_scaled_defense(base_defense: SCBEDefense, level: int) -> SCBEDefense:
+    """
+    Scale defense based on threat level (adaptive response).
+
+    Higher threat levels trigger stronger defensive expansion.
+    """
+    # Defense scaling (proportional response)
+    defense_scaling = {
+        1: {'entropy_mult': 1.0, 'expansion_mult': 1.0},
+        2: {'entropy_mult': 1.0, 'expansion_mult': 1.1},
+        3: {'entropy_mult': 1.0, 'expansion_mult': 1.2},
+        4: {'entropy_mult': 1.0, 'expansion_mult': 1.3},
+        5: {'entropy_mult': 1.0, 'expansion_mult': 1.5},
+    }
+
+    s = defense_scaling[level]
+    return SCBEDefense(
+        initial_entropy=base_defense.initial_entropy * s['entropy_mult'],
+        expansion_rate=base_defense.expansion_rate * s['expansion_mult'],
+        coherence_threshold=base_defense.coherence_threshold,
+        harmonic_exponent=base_defense.harmonic_exponent,
+        phi_scaling=base_defense.phi_scaling
+    )
+
+
+def simulate_5_level_threats(t_max: float = 100, adaptive_defense: bool = True):
+    """
+    Simulate all threats at 5 intensity levels.
+
+    Args:
+        t_max: Simulation time
+        adaptive_defense: If True, defense scales with threat level
+    """
+    print("\n" + "=" * 80)
+    print("5-LEVEL THREAT SCALING SIMULATION")
+    print("=" * 80)
+
+    level_names = {
+        1: "BASELINE    (Current tech)",
+        2: "NEAR-TERM   (5-year projection)",
+        3: "ADVANCED    (10-year projection)",
+        4: "EXTREME     (Nation-state + quantum)",
+        5: "THEORETICAL (Physical limits)"
+    }
+
+    base_defense = SCBE_DEFAULT
+    threat_types = ['classical', 'grover', 'shor', 'swarm', 'adaptive_ai']
+
+    # Results storage
+    all_results = {}
+
+    for level in range(1, 6):
+        print(f"\n{'─' * 80}")
+        print(f"LEVEL {level}: {level_names[level]}")
+        print(f"{'─' * 80}")
+
+        # Get defense for this level
+        if adaptive_defense:
+            defense = create_scaled_defense(base_defense, level)
+            print(f"Defense: k={defense.expansion_rate:.3f} (adaptive)")
+        else:
+            defense = base_defense
+            print(f"Defense: k={defense.expansion_rate:.3f} (static)")
+
+        level_results = {}
+
+        for threat_name in threat_types:
+            base_threat = THREATS[threat_name]
+            scaled_threat = create_scaled_threat(base_threat, level)
+
+            result = simulate_attack(scaled_threat, defense, t_max)
+            level_results[threat_name] = result
+
+            # Escape velocity
+            escape = compute_escape_velocity(scaled_threat, defense)
+
+            # Print result
+            progress_str = f"{result['final_progress_log2']:>10.2f}"
+            esc_str = "YES" if escape['grover_escape'] else "NO"
+
+            print(f"  {threat_name:12}: log2(P)={progress_str}  "
+                  f"escape={esc_str:3}  outcome={result['outcome']}")
+
+        all_results[level] = level_results
+
+    # Summary matrix
+    print("\n" + "=" * 80)
+    print("THREAT LEVEL MATRIX: log2(Progress)")
+    print("=" * 80)
+    print(f"{'Threat':<12} {'L1':>12} {'L2':>12} {'L3':>12} {'L4':>12} {'L5':>12}")
+    print("-" * 80)
+
+    for threat_name in threat_types:
+        row = f"{threat_name:<12}"
+        for level in range(1, 6):
+            val = all_results[level][threat_name]['final_progress_log2']
+            row += f" {val:>11.1f}"
+        print(row)
+
+    print("-" * 80)
+
+    # Outcome matrix
+    print("\n" + "=" * 80)
+    print("OUTCOME MATRIX")
+    print("=" * 80)
+    print(f"{'Threat':<12} {'L1':>12} {'L2':>12} {'L3':>12} {'L4':>12} {'L5':>12}")
+    print("-" * 80)
+
+    for threat_name in threat_types:
+        row = f"{threat_name:<12}"
+        for level in range(1, 6):
+            outcome = all_results[level][threat_name]['outcome']
+            row += f" {outcome:>11}"
+        print(row)
+
+    print("=" * 80)
+
+    # Final analysis
+    print("\n" + "=" * 80)
+    print("ANALYSIS: SCBE vs EXPONENTIALLY SCALED THREATS")
+    print("=" * 80)
+
+    # Count secure outcomes
+    secure_count = 0
+    total_count = 0
+    for level in range(1, 6):
+        for threat_name in threat_types:
+            total_count += 1
+            if all_results[level][threat_name]['outcome'] == 'SECURE':
+                secure_count += 1
+
+    print(f"Total simulations: {total_count}")
+    print(f"SECURE outcomes: {secure_count} ({100*secure_count/total_count:.1f}%)")
+
+    # Find worst case
+    worst_progress = float('-inf')
+    worst_threat = None
+    worst_level = None
+
+    for level in range(1, 6):
+        for threat_name in threat_types:
+            prog = all_results[level][threat_name]['final_progress_log2']
+            if prog > worst_progress:
+                worst_progress = prog
+                worst_threat = threat_name
+                worst_level = level
+
+    print(f"\nWorst case: {worst_threat} at Level {worst_level}")
+    print(f"  log2(Progress) = {worst_progress:.2f}")
+    if worst_progress < 0:
+        print(f"  Progress = 2^({worst_progress:.0f}) ≈ {2**worst_progress:.2e}")
+
+    # Margin analysis
+    print("\nSecurity margin (bits below compromise):")
+    for level in range(1, 6):
+        min_margin = float('inf')
+        for threat_name in threat_types:
+            prog = all_results[level][threat_name]['final_progress_log2']
+            margin = -prog  # Negative progress = positive margin
+            if margin < min_margin:
+                min_margin = margin
+        print(f"  Level {level}: {min_margin:.0f} bits")
+
+    print("\n" + "=" * 80)
+
+    return all_results
+
+
+def run_5_level_simulation():
+    """Run the 5-level threat simulation with both static and adaptive defense."""
+    print("\n" + "#" * 80)
+    print("# SCENARIO 1: STATIC DEFENSE (no adaptation)")
+    print("#" * 80)
+    results_static = simulate_5_level_threats(t_max=100, adaptive_defense=False)
+
+    print("\n" + "#" * 80)
+    print("# SCENARIO 2: ADAPTIVE DEFENSE (scales with threat)")
+    print("#" * 80)
+    results_adaptive = simulate_5_level_threats(t_max=100, adaptive_defense=True)
+
+    # Compare scenarios
+    print("\n" + "=" * 80)
+    print("COMPARISON: STATIC vs ADAPTIVE DEFENSE")
+    print("=" * 80)
+
+    threat_types = ['classical', 'grover', 'shor', 'swarm', 'adaptive_ai']
+
+    print(f"\n{'Threat':<12} {'Level':<8} {'Static':>15} {'Adaptive':>15} {'Improvement':>15}")
+    print("-" * 70)
+
+    for level in [3, 4, 5]:  # Focus on challenging levels
+        for threat_name in threat_types:
+            static_prog = results_static[level][threat_name]['final_progress_log2']
+            adaptive_prog = results_adaptive[level][threat_name]['final_progress_log2']
+            improvement = static_prog - adaptive_prog  # Lower is better
+
+            print(f"{threat_name:<12} L{level:<7} {static_prog:>15.1f} {adaptive_prog:>15.1f} {improvement:>+15.1f}")
+
+    print("=" * 80)
+    print("\nPositive improvement = adaptive defense is stronger")
+
+    return results_static, results_adaptive
+
+
 if __name__ == "__main__":
     test_dimensional_analysis()
+    print("\n\n")
+    run_5_level_simulation()
