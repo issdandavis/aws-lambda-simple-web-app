@@ -373,6 +373,65 @@ The method of claim 14, wherein detecting anomalies comprises:
 
 ---
 
+## CLAIM 19 (Dependent - Klein Bottle Intent Topology)
+
+The method of claim 1, wherein the intent subspace is topologically modeled as a Klein bottle manifold, comprising:
+
+(a) **embedding intent vectors** into a 4-dimensional Klein bottle using parametric equations:
+
+```
+x(u,v) = (R + cos(u/2)sin(v) - sin(u/2)sin(2v)) cos(u)
+y(u,v) = (R + cos(u/2)sin(v) - sin(u/2)sin(2v)) sin(u)
+z(u,v) = sin(u/2)sin(v) + cos(u/2)sin(2v)
+w(u,v) = cos(u/2)cos(v)
+```
+
+where R = φ² ≈ 2.618 (golden ratio squared);
+
+(b) **mapping intent strength and time** to Klein parameters:
+
+**u = 2π × (intent_strength / max_intent) × φ**
+**v = 2π × (t / Δt) + θ_phase**
+
+where θ_phase is derived from a cryptographic key;
+
+(c) **detecting orientation reversal** wherein any closed trajectory loop in the u-parameter automatically flips handedness, causing:
+   - positive intent paths to remain coherent (inner orbit);
+   - negative/anomalous intent paths to undergo orientation reversal (repulsion);
+
+(d) **computing Klein distance** with boundary amplification:
+
+**d_klein = d_euclidean × (1 / (1 - ||p|| / (2R))))**
+
+wherein distance explodes near the apparent self-intersection zone in 3D projection;
+
+(e) **classifying trajectories** based on orientation and tension:
+   - **HARMONIC**: No orientation flip, low tension (legitimate);
+   - **REPULSIVE**: Orientation flipped (attack, automatic ejection);
+   - **ANOMALOUS**: High accumulated tension (probing behavior).
+
+---
+
+## CLAIM 20 (Dependent - Rational/Irrational Flux Detection)
+
+The method of claim 1, wherein detecting anomalies comprises exploiting the flux between rational and irrational number domains:
+
+(a) **applying φ-weighted metric** G = diag(1, 1, 1, φ, φ², φ³) to all state computations, wherein:
+   - multiplication by irrational φ spreads irrationality through the state space;
+   - any rational approximation by an attacker produces detectable residue;
+
+(b) **extracting irrational residue** via the decimal drift formula δ = s - floor(s), wherein:
+   - legitimate agents riding natural harmonic oscillation produce expected δ distributions;
+   - attackers forging integer states produce anomalous δ ≈ 0 patterns;
+   - attackers using rational approximations (e.g., 8/5 ≈ φ) produce characteristic error signatures;
+
+(c) **detecting forgery attempts** by monitoring for:
+   - unnaturally stable δ values (attempted rational forgery);
+   - periodic δ patterns matching known rational approximations to φ;
+   - absence of expected irrational fluctuation in high-entropy states.
+
+---
+
 ## MAPPING: Claims ↔ Test Coverage
 
 | Claim | Test File | Test Function | Result |
