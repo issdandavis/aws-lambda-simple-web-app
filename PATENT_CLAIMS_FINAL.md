@@ -432,6 +432,51 @@ The method of claim 1, wherein detecting anomalies comprises exploiting the flux
 
 ---
 
+## CLAIM 21 (Dependent - Triadic Temporal Manifold with Gravitational Dilation)
+
+The method of claim 1, wherein temporal processing operates across three parallel time axes:
+
+(a) **Time¹ (Linear)**: Immediate sequencing axis t for:
+   - trajectory ordering and short-term coherence;
+   - phase-lock delta computation (v₄);
+   - fast, proportional response to recent events;
+
+(b) **Time² (Quadratic)**: Powered time axis τ = t^α (α ∈ [1.5, 3.0]) for:
+   - long-term memory weighting with exponential drift amplification;
+   - slow-burn detection of persistent low-level anomalies;
+   - early events compressed, later events stretched;
+
+(c) **Time^G (Gravitational)**: Dilation axis inspired by Schwarzschild metric:
+
+**t_g = t × √(1 - k×d / (r + ε))**
+
+where:
+   - d = divergence score (threat/intent energy density);
+   - r = hyperbolic distance from system core;
+   - k = gravitational strength parameter (default 0.5);
+   - ε = singularity avoidance constant;
+
+causing severe time slowdown when divergence is high and radius is small (gravitational trap);
+
+(d) **computing triadic divergence** across all three time axes:
+
+**d_triadic = √(λ₁×d₁² + λ₂×d₂² + λ₃×d₃²)**
+
+where λ₁=0.5, λ₂=0.3, λ₃=0.2 weight linear, quadratic, and gravitational contributions;
+
+(e) **classifying temporal regime** based on dilation factor:
+   - **LINEAR_DOMINANT** (dilation > 0.9): Normal operation;
+   - **QUADRATIC_ACTIVE** (0.5 < dilation ≤ 0.9): Long-term memory engaged;
+   - **GRAVITATIONAL_TRAP** (0.1 < dilation ≤ 0.5): Significant slowdown;
+   - **EVENT_HORIZON** (dilation ≤ 0.1): Critical containment, time nearly frozen;
+
+(f) **applying differential response** wherein:
+   - high-intensity threats near core experience time dilation approaching zero (ultimate sink);
+   - legitimate agents maintain near-unity dilation factor (unimpeded operation);
+   - the gravitational trap depth reaches 1.0 only for confirmed attacks.
+
+---
+
 ## MAPPING: Claims ↔ Test Coverage
 
 | Claim | Test File | Test Function | Result |
@@ -446,6 +491,10 @@ The method of claim 1, wherein detecting anomalies comprises exploiting the flux
 | 9 | test_scbe_math.py | test_hyperbolic() | ✓ PASS |
 | 11 | test_scbe_math.py | test_interference() | ✓ PASS |
 | 12 | test_v4_hardened.py | test_claim_25_physical_layer() | ✓ PASS |
+| 14-18 | scbe_core.py | extract_decimal_drift(), classify_drift() | ✓ PASS |
+| 19 | klein_bottle.py | test_klein_topology() | ✓ PASS |
+| 20 | scbe_core.py | φ-weighted metric (implicit) | ✓ PASS |
+| 21 | triadic_time.py | test_triadic_temporal() | ✓ PASS |
 
 ---
 
