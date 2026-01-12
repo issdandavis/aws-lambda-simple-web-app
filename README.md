@@ -244,3 +244,37 @@ MIT License
 - Feistel Networks: Luby-Rackoff, 1988
 - Biquad Filters: Audio EQ Cookbook
 - MFCC: Davis & Mermelstein, 1980
+
+## Development
+
+### Running Tests
+
+```bash
+pip install -r requirements.txt
+pytest tests/
+```
+
+### Deployment
+
+Deploy the Lambda function using AWS CLI or console:
+
+```bash
+# Package the function
+zip -r function.zip index.js symphonic_cipher/ physics_sim/ requirements.txt
+
+# Deploy to AWS Lambda
+aws lambda update-function-code --function-name your-function-name --zip-file fileb://function.zip
+```
+
+### Project Structure
+
+```
+aws-lambda-simple-web-app/
+├── assets/images/      # Diagrams and analysis images
+├── physics_sim/        # Physics simulation module
+├── symphonic_cipher/   # Symphonic Cipher implementation
+├── tests/              # Test files
+├── index.js            # Lambda handler
+├── requirements.txt    # Python dependencies
+└── README.md
+```
