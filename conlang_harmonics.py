@@ -390,24 +390,58 @@ def test_sacred_tongues():
         assert detected == expected, f"Expected {expected}, got {detected}"
     print("  [PASS] Phase detection accurate")
 
-    # Test 7: Trajectory classification
+    # Test 7: Trajectory classification (4 types: Friend, Legit, Stranger, Attack)
     print("\n[TEST 7] Trajectory classification:")
 
-    # Legitimate: KO → AV → RU → DR
-    legit_phases = [0, np.pi/3, 2*np.pi/3, 5*np.pi/3]
+    # FRIEND: KO → AV → AV → DR (stable, affirmative, completes cleanly)
+    # Friends use positive tongues consistently with clear completion
+    friend_phases = [0, np.pi/3, np.pi/3, 5*np.pi/3]  # KO → AV → AV → DR
+    friend_result = classify_tongue_trajectory(friend_phases)
+    print(f"  FRIEND trajectory: {friend_result['tongues']}")
+    print(f"    Pattern: {friend_result['pattern']}, Status: {friend_result['status']}")
+    assert friend_result['status'] in ['HARMONIC', 'NORMAL'], "Friend should be harmonic/normal"
+
+    # LEGIT: KO → AV → RU → DR (identity, affirm, query, complete)
+    # Standard legitimate flow with some reflection
+    legit_phases = [0, np.pi/3, 2*np.pi/3, 5*np.pi/3]  # KO → AV → RU → DR
     legit_result = classify_tongue_trajectory(legit_phases)
-    print(f"  Legit trajectory: {legit_result['tongues']}")
+    print(f"  LEGIT trajectory: {legit_result['tongues']}")
     print(f"    Pattern: {legit_result['pattern']}, Status: {legit_result['status']}")
     assert legit_result['status'] in ['HARMONIC', 'NORMAL'], "Legit should be harmonic/normal"
 
-    # Attack: CA → CA → CA → CA
-    attack_phases = [np.pi, np.pi, np.pi, np.pi]
+    # STRANGER: KO → RU → UM → DR (identity, query, uncertainty, then completes)
+    # Strangers show more query/uncertainty but eventually resolve positively
+    stranger_phases = [0, 2*np.pi/3, 4*np.pi/3, 5*np.pi/3]  # KO → RU → UM → DR
+    stranger_result = classify_tongue_trajectory(stranger_phases)
+    print(f"  STRANGER trajectory: {stranger_result['tongues']}")
+    print(f"    Pattern: {stranger_result['pattern']}, Status: {stranger_result['status']}")
+    # Strangers should not be threats - they complete with DR
+    assert stranger_result['status'] in ['HARMONIC', 'NORMAL', 'PROBE'], \
+        "Stranger should be harmonic/normal/probe (not threat)"
+
+    # ATTACK: CA → CA → CA → CA (pure negation/opposition)
+    attack_phases = [np.pi, np.pi, np.pi, np.pi]  # CA → CA → CA → CA
     attack_result = classify_tongue_trajectory(attack_phases)
-    print(f"  Attack trajectory: {attack_result['tongues']}")
+    print(f"  ATTACK trajectory: {attack_result['tongues']}")
     print(f"    Pattern: {attack_result['pattern']}, Status: {attack_result['status']}")
     assert attack_result['status'] == 'THREAT', "Attack should be threat"
 
-    print("  [PASS] Trajectory classification correct")
+    # Summary table
+    print("\n  " + "-" * 50)
+    print("  Tongue Trajectory Summary:")
+    print("  " + "-" * 50)
+    trajectories = [
+        ('FRIEND', friend_result),
+        ('LEGIT', legit_result),
+        ('STRANGER', stranger_result),
+        ('ATTACK', attack_result),
+    ]
+    print(f"  {'Type':<10} {'Tongues':<20} {'Pattern':<15} {'Status'}")
+    for name, result in trajectories:
+        tongues_str = '→'.join(result['tongues'])
+        print(f"  {name:<10} {tongues_str:<20} {result['pattern']:<15} {result['status']}")
+
+    print("  [PASS] All 4 trajectory types classified correctly")
 
     # Test 8: Emotional spin waves
     print("\n[TEST 8] Emotional spin wave interference:")

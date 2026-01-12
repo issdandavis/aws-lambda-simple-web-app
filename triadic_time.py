@@ -281,11 +281,75 @@ def test_triadic_temporal():
     print(f"  Max trap depth: {attack_result['max_trap_depth']:.4f}")
     print(f"  Dominant regime: {attack_result['dominant_regime']}")
 
-    # Verify differentiation
+    # FRIEND trajectory (known entity, very stable, tight clustering around reference)
+    # Friends show consistent, predictable behavior with minimal deviation
+    friend_traj = [reference + np.random.normal(0, 0.03, 6) for _ in range(20)]  # Very low noise
+
+    friend_result = evaluate_triadic_threat(friend_traj, times, reference)
+    print(f"\nFRIEND trajectory (non-threat, known entity):")
+    print(f"  Status: {friend_result['status']}")
+    print(f"  Mean dilation: {friend_result['mean_dilation_factor']:.4f}")
+    print(f"  Max trap depth: {friend_result['max_trap_depth']:.4f}")
+    print(f"  Dominant regime: {friend_result['dominant_regime']}")
+
+    # STRANGER trajectory (unknown entity, moderate exploration, but non-malicious)
+    # Strangers show initial variability that stabilizes over time (learning/adapting)
+    stranger_traj = []
+    for i in range(20):
+        # Exploration decreases over time (stranger becomes familiar)
+        exploration_factor = 0.3 * np.exp(-i / 10.0)  # Decays from 0.3 to ~0.1
+        deviation = np.random.normal(0, exploration_factor, 6)
+        stranger_traj.append(reference + deviation)
+
+    stranger_result = evaluate_triadic_threat(stranger_traj, times, reference)
+    print(f"\nSTRANGER trajectory (non-threat, unknown entity):")
+    print(f"  Status: {stranger_result['status']}")
+    print(f"  Mean dilation: {stranger_result['mean_dilation_factor']:.4f}")
+    print(f"  Max trap depth: {stranger_result['max_trap_depth']:.4f}")
+    print(f"  Dominant regime: {stranger_result['dominant_regime']}")
+
+    # Verify differentiation across all 4 trajectory types
+    print("\n" + "-" * 40)
+    print("Trajectory Differentiation Summary")
+    print("-" * 40)
+
+    trajectories = {
+        'FRIEND': friend_result,
+        'LEGIT': legit_result,
+        'STRANGER': stranger_result,
+        'ATTACK': attack_result
+    }
+
+    print(f"{'Type':<12} {'Status':<22} {'Dilation':<10} {'Trap Depth':<12} {'Regime'}")
+    print("-" * 80)
+    for name, result in trajectories.items():
+        print(f"{name:<12} {result['status']:<22} {result['mean_dilation_factor']:.4f}     "
+              f"{result['max_trap_depth']:.4f}       {result['dominant_regime']}")
+
+    # Assertions for non-threat trajectories
+    assert friend_result['status'] == 'NORMAL', "Friend should be NORMAL"
+    assert stranger_result['status'] == 'NORMAL', "Stranger should be NORMAL"
+    assert legit_result['status'] == 'NORMAL', "Legit should be NORMAL"
+
+    # Friends should have the best (highest) dilation factor
+    assert friend_result['mean_dilation_factor'] >= legit_result['mean_dilation_factor'] * 0.95, \
+        "Friend should have similar or better dilation than legit"
+
+    # Strangers should be between friends/legit and attacks
+    assert stranger_result['mean_dilation_factor'] > attack_result['mean_dilation_factor'], \
+        "Stranger should have better dilation than attack"
+
+    # Attack should be clearly differentiated
     assert legit_result['mean_dilation_factor'] > attack_result['mean_dilation_factor'], \
         "Attack should have more time dilation"
     assert legit_result['max_trap_depth'] < attack_result['max_trap_depth'], \
         "Attack should have deeper trap"
+
+    print("\n[PASS] All 4 trajectory types correctly differentiated")
+    print("  - FRIEND: Highest trust, minimal dilation")
+    print("  - LEGIT: Normal operations, low dilation")
+    print("  - STRANGER: Exploratory but stabilizing, moderate dilation")
+    print("  - ATTACK: Divergent behavior, severe dilation/containment")
 
     print("\n" + "=" * 60)
     print("ALL TRIADIC TEMPORAL TESTS PASSED")
