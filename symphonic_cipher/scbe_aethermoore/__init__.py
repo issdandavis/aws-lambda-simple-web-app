@@ -261,7 +261,7 @@ from .organic_hyperbolic import (
     HyperbolicEngine,
 
     # Pillar 4: Governance
-    GovernanceDecision,
+    # NOTE: GovernanceDecision imported from unified.py to avoid duplicate enum
     RealmConfig,
     GovernanceEngine,
 
@@ -424,6 +424,34 @@ from .production_v2_1 import (
     # Testing
     self_test as production_self_test,
 )
+
+# Security Gate Module (from scbe-security-gate repo)
+from .security_gate import (
+    # Computational Immune System
+    ScienceDomain,
+    MultidimensionalExpertMind,
+    ContextVector,
+    ErrorAccumulator,
+    DriftSimulationEngine,
+
+    # DNA Multi-Layer Encoding
+    MORSE_TO_DNA,
+    DNA_TO_MORSE,
+    encode_morse_dna,
+    TemporalVector,
+    EmotionalIntentVector,
+    SpatialVector,
+    DNAMultiLayerMessage,
+
+    # Entropic Dual-Quantum System
+    ForwardSecureRatchet,
+    ReplayError,
+    MarsReceiver,
+    AdaptiveKController,
+)
+
+# Also expose the module itself for direct imports
+from . import security_gate
 
 __all__ = [
     # CPSE - Cryptographic Physics Simulation Engine
@@ -599,7 +627,7 @@ __all__ = [
     "OrganicState9D",
     "StateGenerator",
     "HyperbolicEngine",
-    "GovernanceDecision",
+    # GovernanceDecision exported from unified.py above
     "RealmConfig",
     "GovernanceEngine",
     "OrganicSCBE",
@@ -670,4 +698,23 @@ __all__ = [
     "BreathingPattern",
     "apply_breathing_pattern",
     "fractional_flux_self_test",
+
+    # Security Gate Module (from scbe-security-gate repo)
+    "security_gate",
+    "ScienceDomain",
+    "MultidimensionalExpertMind",
+    "ContextVector",
+    "ErrorAccumulator",
+    "DriftSimulationEngine",
+    "MORSE_TO_DNA",
+    "DNA_TO_MORSE",
+    "encode_morse_dna",
+    "TemporalVector",
+    "EmotionalIntentVector",
+    "SpatialVector",
+    "DNAMultiLayerMessage",
+    "ForwardSecureRatchet",
+    "ReplayError",
+    "MarsReceiver",
+    "AdaptiveKController",
 ]
