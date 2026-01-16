@@ -453,6 +453,41 @@ from .security_gate import (
 # Also expose the module itself for direct imports
 from . import security_gate
 
+# Spiralverse RWP v3.0 - Quantum-Resistant Protocol
+from .spiralverse_rwp import (
+    # Protocol enums
+    ProtocolMode,
+    SacredTongue,
+    RiskLevel,
+
+    # Data structures
+    HybridKeyPair,
+    HybridSigningKeyPair,
+    HybridSignature,
+    SSTContext,
+    VersionNegotiation,
+
+    # Tongue bindings
+    TongueBinding,
+    KorvethianBinding,
+    AvethrilBinding,
+    RunevastBinding,
+    CelestineBinding,
+    UmbralisBinding,
+    DraconicBinding,
+
+    # Managers
+    SSTManager,
+    CryptoOperations,
+    KeyManager,
+
+    # Main SDK
+    SpiralverseSDK,
+
+    # Self-test
+    self_test as spiralverse_self_test,
+)
+
 __all__ = [
     # CPSE - Cryptographic Physics Simulation Engine
     "CPSEEngine",
@@ -717,4 +752,26 @@ __all__ = [
     "ReplayError",
     "MarsReceiver",
     "AdaptiveKController",
+
+    # Spiralverse RWP v3.0 - Quantum-Resistant Protocol
+    "ProtocolMode",
+    "SacredTongue",
+    "RiskLevel",
+    "HybridKeyPair",
+    "HybridSigningKeyPair",
+    "HybridSignature",
+    "SSTContext",
+    "VersionNegotiation",
+    "TongueBinding",
+    "KorvethianBinding",
+    "AvethrilBinding",
+    "RunevastBinding",
+    "CelestineBinding",
+    "UmbralisBinding",
+    "DraconicBinding",
+    "SSTManager",
+    "CryptoOperations",
+    "KeyManager",
+    "SpiralverseSDK",
+    "spiralverse_self_test",
 ]
