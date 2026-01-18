@@ -1,0 +1,146 @@
+# SCBE-AETHERMOORE Docker Compose Configuration
+#
+# Usage:
+#   Production:  docker-compose up -d
+#   Development: docker-compose --profile dev up
+#   With Redis:  docker-compose --profile cache up -d
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Main SCBE Service
+  # ==========================================================================
+  scbe:
+    build:
+      context: .
+      target: production
+    image: scbe-aethermoore:3.0.0
+    container_name: scbe-production
+    ports:
+      - "8000:8000"
+    environment:
+      SCBE_ENVIRONMENT: production
+      SCBE_LOG_LEVEL: INFO
+      SCBE_LOG_FORMAT: json
+      SCBE_AUDIT_ENABLED: "true"
+      SCBE_PQC_KEM_LEVEL: "768"
+      SCBE_PQC_DSA_LEVEL: "65"
+      SCBE_PQC_HYBRID: "true"
+      SCBE_GOV_ALLOW_THRESHOLD: "0.20"
+      SCBE_GOV_QUARANTINE_THRESHOLD: "0.40"
+      SCBE_GEOSEAL_INTERIOR_THRESHOLD: "0.5"
+    volumes:
+      - scbe-data:/app/data
+      - scbe-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "from scbe_production.service import SCBEProductionService; SCBEProductionService().health_check()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ==========================================================================
+  # Development Service (profile: dev)
+  # ==========================================================================
+  scbe-dev:
+    build:
+      context: .
+      target: development
+    image: scbe-aethermoore:dev
+    container_name: scbe-development
+    profiles:
+      - dev
+    ports:
+      - "8001:8000"
+    environment:
+      SCBE_ENVIRONMENT: development
+      SCBE_LOG_LEVEL: DEBUG
+      SCBE_LOG_FORMAT: text
+      SCBE_AUDIT_ENABLED: "true"
+    volumes:
+      - .:/app:ro
+      - scbe-dev-data:/app/data
+    command: ["pytest", "-v", "--cov=symphonic_cipher", "--cov=scbe_production", "--cov-report=term-missing"]
+
+  # ==========================================================================
+  # Redis Cache (profile: cache)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: scbe-redis
+    profiles:
+      - cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - scbe-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Prometheus Metrics (profile: monitoring)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: scbe-prometheus
+    profiles:
+      - monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - scbe-prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Grafana Dashboard (profile: monitoring)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: scbe-grafana
+    profiles:
+      - monitoring
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: scbe-admin
+    volumes:
+      - scbe-grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  scbe-data:
+    name: scbe-production-data
+  scbe-logs:
+    name: scbe-production-logs
+  scbe-dev-data:
+    name: scbe-dev-data
+  scbe-redis:
+    name: scbe-redis-data
+  scbe-prometheus:
+    name: scbe-prometheus-data
+  scbe-grafana:
+    name: scbe-grafana-data
+
+networks:
+  default:
+    name: scbe-network
