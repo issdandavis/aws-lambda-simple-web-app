@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "pytest tests/ -v --cov=symphonic_cipher",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Integrated Demo",
+      "type": "shell",
+      "command": "python demo_integrated_memory_shard.py",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Memory Shard Demo",
+      "type": "shell",
+      "command": "python demo_memory_shard.py",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Format Code (Black)",
+      "type": "shell",
+      "command": "black symphonic_cipher/ tests/ *.py",
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "Type Check (MyPy)",
+      "type": "shell",
+      "command": "mypy symphonic_cipher/ --ignore-missing-imports",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Lint (Flake8)",
+      "type": "shell",
+      "command": "flake8 symphonic_cipher/ tests/ --max-line-length=100",
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Run Full CI Locally",
+      "type": "shell",
+      "command": "black symphonic_cipher/ tests/ && flake8 symphonic_cipher/ tests/ && mypy symphonic_cipher/ && pytest tests/ -v --cov=symphonic_cipher",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Demo: All Scenarios",
+      "type": "shell",
+      "command": "python demo_integrated_memory_shard.py --scenario all",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}
