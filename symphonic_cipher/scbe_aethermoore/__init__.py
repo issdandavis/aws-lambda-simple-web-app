@@ -1,10 +1,28 @@
 """
-SCBE-AETHERMOORE: Phase-Breath Hyperbolic Governance System
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           SCBE-AETHERMOORE                                   ║
+║              Phase-Breath Hyperbolic Governance System                       ║
+║                                                                              ║
+║  Document ID: AETHER-SPEC-2026-001                                           ║
+║  Author: Isaac Davis                                                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 
 A 9D Quantum Hyperbolic Manifold Memory for AI governance where:
 - Truthful actions trace smooth geodesics
 - Lies/threats manifest as geometric discontinuities (snaps)
 - Governance is geometric shape, not rule-based policy
+
+AXIOM STRUCTURE (see AXIOM_INDEX.md for full documentation):
+────────────────────────────────────────────────────────────
+│ Axiom 4.1 │ Harmonic Space Core    │ H(d, R) = R^(d²)            │
+│ Def 4.3/4 │ HAL-Attention          │ HAL(Q,K,V,d) = softmax(H)·V │
+│ Axiom 4.5 │ Vacuum-Acoustics       │ Nodal surfaces & waves      │
+│ Axiom 4.6 │ Cymatic Storage        │ HolographicQRCube           │
+│ Axiom 5   │ PQC Harmonic           │ Kyber + Harmonic scaling    │
+│ Axiom 6   │ EDE                    │ SpiralRing-64 + Chemistry   │
+│ Axiom 7   │ Spiral Seal            │ Sacred Tongues + Auth       │
+│ Axiom 8   │ Quasicrystal Lattice   │ Penrose Tiling + PHDM       │
+────────────────────────────────────────────────────────────
 
 Core Components:
 - unified.py: Complete 9D system with all integrations
@@ -349,4 +367,51 @@ __all__.extend([
     "compute_chladni_pattern", "resonance_strength", "create_bottle_beam_sources", "analyze_bottle_beam",
     # Cymatic Storage
     "StorageMode", "Voxel", "KDTree", "HolographicQRCube",
+])
+
+# =============================================================================
+# AXIOM MODULE IMPORTS (New Organization)
+# =============================================================================
+# These provide clear axiom-based entry points while maintaining backward
+# compatibility with the flat import structure above.
+
+# Axiom modules are imported lazily to avoid circular imports
+# Users can import directly: from .axiom_4_1_harmonic_core import harmonic_scale
+
+AXIOM_MODULES = {
+    '4.1': 'axiom_4_1_harmonic_core',    # Harmonic Space Core: H(d,R) = R^(d²)
+    '4.3': 'axiom_4_3_hal_attention',    # HAL-Attention Layer
+    '4.4': 'axiom_4_3_hal_attention',    # Coupling Matrix (same module as 4.3)
+    '4.5': 'axiom_4_5_vacuum_acoustics', # Vacuum-Acoustics Kernel
+    '4.6': 'axiom_4_6_cymatic_storage',  # Cymatic Voxel Storage
+    '5':   'axiom_5_pqc_harmonic',       # PQC Harmonic Integration
+    '6':   'axiom_6_ede',                # Entropic Defense Engine
+    '7':   'axiom_7_spiral_seal',        # Spiral Seal (Sacred Tongues)
+    '8':   'axiom_8_qc_lattice',         # Quasicrystal Lattice
+}
+
+def get_axiom_module(axiom_id: str):
+    """
+    Get an axiom module by its ID.
+
+    Args:
+        axiom_id: The axiom identifier (e.g., '4.1', '5', '7')
+
+    Returns:
+        The imported axiom module
+
+    Example:
+        >>> axiom_4_1 = get_axiom_module('4.1')
+        >>> axiom_4_1.harmonic_scale(6, 1.5)
+        2184164.40625
+    """
+    import importlib
+    if axiom_id not in AXIOM_MODULES:
+        raise ValueError(f"Unknown axiom ID: {axiom_id}. Available: {list(AXIOM_MODULES.keys())}")
+    module_name = f".{AXIOM_MODULES[axiom_id]}"
+    return importlib.import_module(module_name, package=__name__)
+
+__all__.extend([
+    "AXIOM_MODULES",
+    "get_axiom_module",
 ])
