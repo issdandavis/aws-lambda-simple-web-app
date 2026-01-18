@@ -1,0 +1,170 @@
+STAGGERED AUTH - 6x6 SACRED TONGUE VERIFICATION
+================================================
+
+THE HEXAGONAL SPIRAL
+--------------------
+                      [KO]
+                   Kor'aelin
+                   nonce/flow
+                       |
+            [DR] ------+------ [AV]
+          Draumric     |      Avali
+          tag/forge    |    aad/context
+               \       |       /
+                \      |      /
+                 \     |     /
+                  \    |    /
+            [UM] --+---+---+-- [RU]
+           Umbroth     |    Runethic
+          veil/shadow  |   salt/binding
+                       |
+                     [CA]
+                 Cassisivadan
+                  ciphertext
+
+
+SPIRAL ORDER: KO -> AV -> RU -> CA -> UM -> DR -> [loop]
+
+
+CROSS-REFERENCE PATTERNS
+------------------------
+
+RING (12 refs)           TWO (18 refs)           FULL (36 refs)
+Each refs self + next    Each refs +/- 1         All ref all
+
+     KO AV RU CA UM DR        KO AV RU CA UM DR       KO AV RU CA UM DR
+KO   X  X  .  .  .  .    KO   X  X  .  .  .  X   KO   X  X  X  X  X  X
+AV   .  X  X  .  .  .    AV   X  X  X  .  .  .   AV   X  X  X  X  X  X
+RU   .  .  X  X  .  .    RU   .  X  X  X  .  .   RU   X  X  X  X  X  X
+CA   .  .  .  X  X  .    CA   .  .  X  X  X  .   CA   X  X  X  X  X  X
+UM   .  .  .  .  X  X    UM   .  .  .  X  X  X   UM   X  X  X  X  X  X
+DR   X  .  .  .  .  X    DR   X  .  .  .  X  X   DR   X  X  X  X  X  X
+
+
+THREE-STAGE VERIFICATION
+------------------------
+
++=====================================================+
+|                 STAGGERED AUTH PACKET               |
++=====================================================+
+|                                                     |
+|  STAGE 1: LENGTHS/NORMALIZE                         |
+|  +------------------------------------------------+ |
+|  | KO: 24 bytes | AV: 16 bytes | RU: 16 bytes     | |
+|  | CA: 48 bytes | UM: 0 bytes  | DR: 16 bytes     | |
+|  +------------------------------------------------+ |
+|                         |                           |
+|                         v                           |
+|  STAGE 2: CHECKSUM                                  |
+|  +------------------------------------------------+ |
+|  | SHA-256(all_sections) = a1b2c3d4e5f6...        | |
+|  +------------------------------------------------+ |
+|                         |                           |
+|                         v                           |
+|  STAGE 3: REFS + TRIAD AUTH                         |
+|  +------------------------------------------------+ |
+|  | Cross-Refs: 6x6 grid (pattern: RING/TWO/FULL)  | |
+|  |   ko->ko ko->av                                | |
+|  |   av->av av->ru ...                            | |
+|  |                                                | |
+|  | Auth Sidecar:                                  | |
+|  |   Triad: [KO] + [RU] + [UM]                   | |
+|  |   Threshold: 2 of 3                            | |
+|  |   Tags: [MAC_ko] [MAC_ru] [MAC_um]             | |
+|  +------------------------------------------------+ |
+|                                                     |
++=====================================================+
+
+
+SPIRAL KEY DERIVATION (SKD)
+---------------------------
+
+                    Master Key (32 bytes)
+                           |
+          +----------------+----------------+
+          |                |                |
+          v                v                v
+    derive_tongue_key  derive_tongue_key  derive_tongue_key
+          |                |                |
+          v                v                v
+    +----------+    +----------+    +----------+
+    | KO Key   |    | AV Key   |    | RU Key   |
+    | (32 B)   |    | (32 B)   |    | (32 B)   |
+    +----------+    +----------+    +----------+
+          |                |                |
+          +----------------+----------------+
+          |                |                |
+          v                v                v
+    +----------+    +----------+    +----------+
+    | CA Key   |    | UM Key   |    | DR Key   |
+    | (32 B)   |    | (32 B)   |    | (32 B)   |
+    +----------+    +----------+    +----------+
+                           |
+                           v
+                   spiral_key_combine()
+                           |
+                           v
+                   Combined Triad Key
+
+
+AUTH SIDECAR STRUCTURE
+----------------------
+
++----------------------------------+
+|          AUTH SIDECAR            |
++----------------------------------+
+| tongues: (KO, RU, UM)            |
+| threshold: 2                      |
++----------------------------------+
+| tags:                             |
+|   KO: HMAC(ko_key, payload||refs)|
+|   RU: HMAC(ru_key, payload||refs)|
+|   UM: HMAC(um_key, payload||refs)|
++----------------------------------+
+| refs_hash: SHA256(all_refs)      |
++----------------------------------+
+
+Verification:
+  - Recompute MACs for each tongue
+  - Count matching MACs
+  - Pass if count >= threshold (2/3)
+
+
+TONGUE DOMAINS
+--------------
+
+  KO (Kor'aelin)   - nonce, flow, intent
+  AV (Avali)       - AAD, context, diplomacy
+  RU (Runethic)    - salt, binding, constraints
+  CA (Cassisivadan)- ciphertext, bitcraft
+  UM (Umbroth)     - veil, shadow, redaction
+  DR (Draumric)    - auth tag, structure, forge
+
+
+LEXICON STATS
+-------------
+
+  6 Tongues x 256 tokens each = 1,536 unique tokens
+  Each token = prefix'suffix (16 x 16 = 256 combinations)
+
+  RING pattern:  6 x 2 = 12 cross-references
+  TWO pattern:   6 x 3 = 18 cross-references
+  FULL pattern:  6 x 6 = 36 cross-references
+
+
+USAGE EXAMPLE
+-------------
+
+  from sacred_tongues import quick_staggered_pack, quick_staggered_verify
+
+  master_key = os.urandom(32)
+  data = b"Hello, Spiral World!"
+
+  # Pack with staggered auth
+  packet = quick_staggered_pack(data, master_key)
+
+  # Verify (three stages)
+  valid = quick_staggered_verify(packet, master_key)  # True
+
+  # Render as spell-text
+  print(packet.to_tokens())
