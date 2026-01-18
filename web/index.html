@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SCBE-AETHERMOORE Demo</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.25rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:hover {
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+
+        .decision {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .decision-allow { background: var(--success); color: black; }
+        .decision-quarantine { background: var(--warning); color: black; }
+        .decision-deny { background: var(--danger); color: white; }
+        .decision-snap { background: #7c3aed; color: white; }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric:last-child { border-bottom: none; }
+
+        .metric-label { color: var(--text-dim); }
+        .metric-value { font-family: monospace; }
+
+        .tongue-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .tongue-chip {
+            background: var(--bg-dark);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .tongue-chip .code {
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .spelltext {
+            color: #a78bfa;
+            word-break: break-all;
+        }
+
+        .scenarios {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .scenario-btn {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .scenario-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 0.5rem; }
+            h1 { font-size: 1.25rem; }
+            .card { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SCBE-AETHERMOORE</h1>
+            <p class="subtitle">Hyperbolic Geometry + Sacred Tongues + PQC</p>
+        </header>
+
+        <div class="card">
+            <h2 class="card-title">Quick Scenarios</h2>
+            <div class="scenarios">
+                <button class="scenario-btn active" onclick="loadScenario('benign')">Benign Agent</button>
+                <button class="scenario-btn" onclick="loadScenario('stolen')">Stolen Creds</button>
+                <button class="scenario-btn" onclick="loadScenario('insider')">Insider Threat</button>
+                <button class="scenario-btn" onclick="loadScenario('hallucination')">Hallucination</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Authorization Request</h2>
+            <div class="input-group">
+                <label>Agent ID</label>
+                <input type="text" id="agentId" value="agent-alpha-001" placeholder="agent-001">
+            </div>
+            <div class="input-group">
+                <label>Intent</label>
+                <select id="intent">
+                    <option value="read">Read (Low Risk)</option>
+                    <option value="write">Write (Medium Risk)</option>
+                    <option value="admin">Admin (High Risk)</option>
+                    <option value="delete">Delete (Critical Risk)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Trust Level (0.0 - 1.0)</label>
+                <input type="number" id="trustLevel" value="0.85" min="0" max="1" step="0.05">
+            </div>
+            <div class="input-group">
+                <label>Position (Fibonacci Sequence)</label>
+                <input type="text" id="position" value="1,2,3,5,8,13" placeholder="1,2,3,5,8,13">
+            </div>
+            <button onclick="runVerification()">Verify Authorization</button>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2 class="card-title">Verification Result</h2>
+            <div id="decisionDisplay"></div>
+            <div class="result">
+                <div id="metricsDisplay"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Sacred Tongues Encoder</h2>
+            <div class="input-group">
+                <label>Input (text or hex)</label>
+                <input type="text" id="encodeInput" value="Hello SCBE" placeholder="Enter text to encode">
+            </div>
+            <div class="input-group">
+                <label>Tongue</label>
+                <select id="encodeTongue">
+                    <option value="ko">Kor'aelin (KO) - Nonce/Flow</option>
+                    <option value="av">Avali (AV) - Header/Metadata</option>
+                    <option value="ru">Runethic (RU) - Salt/Binding</option>
+                    <option value="ca">Cassisivadan (CA) - Ciphertext</option>
+                    <option value="um">Umbroth (UM) - Redaction</option>
+                    <option value="dr">Draumric (DR) - Tag/Structure</option>
+                </select>
+            </div>
+            <button onclick="encodeToSpelltext()">Encode to Spell-Text</button>
+            <div class="result" id="spelltextResult" style="display: none;">
+                <div id="spelltextOutput" class="spelltext"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">The Six Sacred Tongues</h2>
+            <div class="tongue-display">
+                <div class="tongue-chip">
+                    <div class="code">KO</div>
+                    <div>Kor'aelin</div>
+                    <div style="color: var(--text-dim)">Flow</div>
+                </div>
+                <div class="tongue-chip">
+                    <div class="code">AV</div>
+                    <div>Avali</div>
+                    <div style="color: var(--text-dim)">Context</div>
+                </div>
+                <div class="tongue-chip">
+                    <div class="code">RU</div>
+                    <div>Runethic</div>
+                    <div style="color: var(--text-dim)">Binding</div>
+                </div>
+                <div class="tongue-chip">
+                    <div class="code">CA</div>
+                    <div>Cassisivadan</div>
+                    <div style="color: var(--text-dim)">Bitcraft</div>
+                </div>
+                <div class="tongue-chip">
+                    <div class="code">UM</div>
+                    <div>Umbroth</div>
+                    <div style="color: var(--text-dim)">Veil</div>
+                </div>
+                <div class="tongue-chip">
+                    <div class="code">DR</div>
+                    <div>Draumric</div>
+                    <div style="color: var(--text-dim)">Structure</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            SCBE-AETHERMOORE v3.0.0 | Cross-Device Demo<br>
+            Works on Kindle, Phone, Laptop
+        </footer>
+    </div>
+
+    <script>
+        // Sacred Tongue Vocabularies (16 prefixes x 16 suffixes each)
+        const TONGUES = {
+            ko: {
+                name: "Kor'aelin",
+                prefixes: ['sil', 'kor', 'vel', 'zar', 'keth', 'thul', 'nav', 'ael', 'ra', 'med', 'gal', 'lan', 'joy', 'good', 'nex', 'vara'],
+                suffixes: ['a', 'ae', 'ei', 'ia', 'oa', 'uu', 'eth', 'ar', 'or', 'il', 'an', 'en', 'un', 'ir', 'oth', 'esh']
+            },
+            av: {
+                name: 'Avali',
+                prefixes: ['saina', 'talan', 'vessa', 'maren', 'oriel', 'serin', 'nurel', 'lirea', 'kiva', 'lumen', 'calma', 'ponte', 'verin', 'nava', 'sela', 'tide'],
+                suffixes: ['a', 'e', 'i', 'o', 'u', 'y', 'la', 're', 'na', 'sa', 'to', 'mi', 've', 'ri', 'en', 'ul']
+            },
+            ru: {
+                name: 'Runethic',
+                prefixes: ['khar', 'drath', 'bront', 'vael', 'ur', 'mem', 'krak', 'tharn', 'groth', 'basalt', 'rune', 'sear', 'oath', 'gnarl', 'rift', 'iron'],
+                suffixes: ['ak', 'eth', 'ik', 'ul', 'or', 'ar', 'um', 'on', 'ir', 'esh', 'nul', 'vek', 'dra', 'kh', 'va', 'th']
+            },
+            ca: {
+                name: 'Cassisivadan',
+                prefixes: ['bip', 'bop', 'klik', 'loopa', 'ifta', 'thena', 'elsa', 'spira', 'rythm', 'quirk', 'fizz', 'gear', 'pop', 'zip', 'mix', 'chass'],
+                suffixes: ['a', 'e', 'i', 'o', 'u', 'y', 'ta', 'na', 'sa', 'ra', 'lo', 'mi', 'ki', 'zi', 'qwa', 'sh']
+            },
+            um: {
+                name: 'Umbroth',
+                prefixes: ['veil', 'zhur', 'nar', 'shul', 'math', 'hollow', 'hush', 'thorn', 'dusk', 'echo', 'ink', 'wisp', 'bind', 'ache', 'null', 'shade'],
+                suffixes: ['a', 'e', 'i', 'o', 'u', 'ae', 'sh', 'th', 'ak', 'ul', 'or', 'ir', 'en', 'on', 'vek', 'nul']
+            },
+            dr: {
+                name: 'Draumric',
+                prefixes: ['anvil', 'tharn', 'mek', 'grond', 'draum', 'ektal', 'temper', 'forge', 'stone', 'steam', 'oath', 'seal', 'frame', 'pillar', 'rivet', 'ember'],
+                suffixes: ['a', 'e', 'i', 'o', 'u', 'ae', 'rak', 'mek', 'tharn', 'grond', 'vek', 'ul', 'or', 'ar', 'en', 'on']
+            }
+        };
+
+        const PHI = 1.618033988749895;
+
+        // Scenarios
+        const SCENARIOS = {
+            benign: { agentId: 'agent-alpha-001', intent: 'read', trustLevel: 0.85, position: '1,2,3,5,8,13' },
+            stolen: { agentId: 'agent-alpha-001', intent: 'admin', trustLevel: 0.2, position: '1,1,1,1,1,1' },
+            insider: { agentId: 'agent-insider-99', intent: 'delete', trustLevel: 0.6, position: '1,2,3,5,8,13' },
+            hallucination: { agentId: 'ai-model-v4', intent: 'write', trustLevel: 0.4, position: '2,4,6,8,10,12' }
+        };
+
+        function loadScenario(name) {
+            const s = SCENARIOS[name];
+            document.getElementById('agentId').value = s.agentId;
+            document.getElementById('intent').value = s.intent;
+            document.getElementById('trustLevel').value = s.trustLevel;
+            document.getElementById('position').value = s.position;
+
+            document.querySelectorAll('.scenario-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function hashString(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        }
+
+        function hyperbolicDistance(u, v) {
+            const eps = 1e-6;
+            let uNorm = Math.sqrt(u.reduce((s, x) => s + x*x, 0));
+            let vNorm = Math.sqrt(v.reduce((s, x) => s + x*x, 0));
+
+            if (uNorm >= 1.0 - eps) u = u.map(x => x * (1.0 - eps) / uNorm);
+            if (vNorm >= 1.0 - eps) v = v.map(x => x * (1.0 - eps) / vNorm);
+
+            uNorm = Math.sqrt(u.reduce((s, x) => s + x*x, 0));
+            vNorm = Math.sqrt(v.reduce((s, x) => s + x*x, 0));
+
+            const diffNormSq = u.reduce((s, x, i) => s + (x - v[i])**2, 0);
+            const denom = (1 - uNorm**2) * (1 - vNorm**2);
+
+            return Math.acosh(Math.max(1.0, 1 + 2 * diffNormSq / denom));
+        }
+
+        function harmonicScaling(d) {
+            return 1 + 10 * Math.tanh(0.5 * d);
+        }
+
+        function geoSealDistance(context, policy) {
+            // Sphere projection (behavioral)
+            const norm = Math.sqrt(context.reduce((s, x) => s + x*x, 0)) || 1;
+            const sphere = context.map(x => x / norm);
+
+            // Hypercube projection (policy) - already in [0,1]
+            const hypercube = policy.map(x => Math.max(0, Math.min(1, x)));
+
+            // Map sphere [-1,1] to [0,1]
+            const sphereNorm = sphere.map(x => (x + 1) / 2);
+
+            // Euclidean distance
+            return Math.sqrt(sphereNorm.reduce((s, x, i) => s + (x - hypercube[i])**2, 0));
+        }
+
+        function runVerification() {
+            const agentId = document.getElementById('agentId').value;
+            const intent = document.getElementById('intent').value;
+            const trustLevel = parseFloat(document.getElementById('trustLevel').value);
+            const position = document.getElementById('position').value.split(',').map(Number);
+
+            // Generate user point from agent hash
+            const hash = hashString(agentId);
+            const userPoint = [
+                ((hash % 255) / 255.0) * 0.8 - 0.4,
+                (((hash >> 8) % 255) / 255.0) * 0.8 - 0.4
+            ];
+            const trustedCenter = [0, 0];
+
+            // Hyperbolic distance
+            const dH = hyperbolicDistance(userPoint, trustedCenter);
+
+            // Harmonic scaling
+            const H = harmonicScaling(dH);
+
+            // Intent risk
+            const intentRisks = { read: 0.1, write: 0.3, admin: 0.6, delete: 0.8 };
+            const intentRisk = intentRisks[intent] || 0.5;
+
+            // Position validation (Fibonacci check)
+            const isFibonacci = position.length >= 2 &&
+                position.slice(2).every((v, i) => Math.abs(v - (position[i] + position[i+1])) < 0.01);
+            const positionPenalty = isFibonacci ? 0 : 0.3;
+
+            // GeoSeal
+            const context = [trustLevel, 1 - intentRisk, dH / 5];
+            const policy = [0.8, 0.7, 0.3];
+            const geoDistance = geoSealDistance(context, policy);
+            const geoPath = geoDistance < 0.5 ? 'interior' : 'exterior';
+            const timeDilation = Math.exp(-2 * geoDistance);
+
+            // Final risk
+            let risk = (intentRisk + (1 - trustLevel) * 0.5 + positionPenalty) * H;
+            risk = risk * (geoPath === 'exterior' ? 1.5 : 1.0);
+            const normalizedRisk = Math.min(1, risk / 5);
+
+            // Decision
+            let decision, decisionClass;
+            if (normalizedRisk >= 0.8) {
+                decision = 'SNAP';
+                decisionClass = 'decision-snap';
+            } else if (normalizedRisk >= 0.4) {
+                decision = 'DENY';
+                decisionClass = 'decision-deny';
+            } else if (normalizedRisk >= 0.2) {
+                decision = 'QUARANTINE';
+                decisionClass = 'decision-quarantine';
+            } else {
+                decision = 'ALLOW';
+                decisionClass = 'decision-allow';
+            }
+
+            // Display results
+            document.getElementById('resultsCard').style.display = 'block';
+            document.getElementById('decisionDisplay').innerHTML =
+                `<span class="decision ${decisionClass}">${decision}</span>`;
+
+            document.getElementById('metricsDisplay').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Risk Score</span>
+                    <span class="metric-value">${normalizedRisk.toFixed(4)}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Hyperbolic Distance</span>
+                    <span class="metric-value">${dH.toFixed(4)}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Harmonic Factor H(d)</span>
+                    <span class="metric-value">${H.toFixed(4)}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">GeoSeal Path</span>
+                    <span class="metric-value">${geoPath}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Time Dilation τ</span>
+                    <span class="metric-value">${timeDilation.toFixed(4)}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Position Valid</span>
+                    <span class="metric-value">${isFibonacci ? 'Yes (Fibonacci)' : 'No (Invalid)'}</span>
+                </div>
+            `;
+        }
+
+        function encodeToSpelltext() {
+            const input = document.getElementById('encodeInput').value;
+            const tongueCode = document.getElementById('encodeTongue').value;
+            const tongue = TONGUES[tongueCode];
+
+            // Convert input to bytes
+            const bytes = [];
+            for (let i = 0; i < input.length; i++) {
+                bytes.push(input.charCodeAt(i) & 0xFF);
+            }
+
+            // Encode each byte to a token
+            const tokens = bytes.map(b => {
+                const pi = b >> 4;
+                const si = b & 0x0F;
+                return `${tongue.prefixes[pi]}'${tongue.suffixes[si]}`;
+            });
+
+            document.getElementById('spelltextResult').style.display = 'block';
+            document.getElementById('spelltextOutput').innerHTML =
+                `<strong>${tongueCode}:</strong> ${tokens.join(' ')}`;
+        }
+
+        // Run initial verification on load
+        window.onload = () => runVerification();
+    </script>
+</body>
+</html>
