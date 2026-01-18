@@ -2,7 +2,55 @@
 
 **Intent-Modulated Conlang + Hyperbolic Governance System**
 
-*Last Updated: January 15, 2026*
+*Version 3.0.0 | Last Updated: January 18, 2026*
+
+---
+
+## Installation
+
+### Python (Recommended)
+
+```bash
+# From PyPI (when published)
+pip install scbe-aethermoore
+
+# From GitHub
+pip install git+https://github.com/issdandavis/aws-lambda-simple-web-app.git
+
+# From source
+git clone https://github.com/issdandavis/aws-lambda-simple-web-app.git
+cd aws-lambda-simple-web-app
+pip install -e .
+```
+
+### TypeScript/Node.js
+
+```bash
+npm install git+https://github.com/issdandavis/scbe-aethermoore-demo.git
+```
+
+```typescript
+// Full package
+import * as scbe from '@scbe/aethermoore';
+
+// Just the harmonic module
+import { harmonicScale, PQCProvider, QCLatticeProvider } from '@scbe/aethermoore/harmonic';
+```
+
+### Docker
+
+```bash
+# Build and run
+docker build -t scbe-aethermoore:3.0.0 .
+docker run -p 8000:8000 scbe-aethermoore:3.0.0
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+### Interactive Demo
+
+Open `demo/index.html` in any browser - no installation required.
 
 ---
 
