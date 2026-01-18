@@ -1,37 +1,110 @@
 # SCBE-AETHERMOORE: Unified Mathematical Specification
 
-**Version:** 1.0
-**Date:** 2026-01-10
+**Version:** 2.0
+**Date:** 2026-01-18
 **Status:** Reference Implementation Complete
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-SCBE-AETHERMOORE is a **context-bound cryptographic framework** that unifies:
-- Geometric access control (no separate ACL layer)
-- Post-quantum cryptographic primitives (Kyber/Dilithium ready)
-- Relativistic time dilation as computational trapdoor
-- Harmonic mathematical foundations
+SCBE-AETHERMOORE is a **constraint-based computational framework** where:
+- **Ethics are geometric** - not rules checked after, but the shape of valid space
+- **Intent is a primitive** - not metadata, but a computational coordinate
+- **Failure is invisible** - wrong context produces noise, not "denied"
+- **Time is a security axis** - attackers get trapped in time dilation
 
-**Core Innovation:** The encryption key IS the geometric intersection. Policy enforcement and cryptographic security are mathematically unified, not layered.
+**Core Innovation:** The encryption key IS the geometric intersection. There is no separate access control layer. The constraints ARE the computation.
 
 ---
 
-## 2. ARCHITECTURAL LAYERS
+## 2. THE PARADIGM SHIFT
+
+### Traditional Computing
+```
+Input → Algorithm → Output → Check Permissions → Allow/Deny
+```
+
+### SCBE-AETHERMOORE
+```
+Context + Intent → Geometric Constraints → Only Valid Outputs Exist
+```
+
+**Key Insight:** You can't jailbreak a shape. You're either inside it or you're not.
+
+---
+
+## 3. THE 5-LAYER ARCHITECTURE
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 5: TEMPORAL CRYSTALLIZATION                          │
+│  Time as axis · Equations stabilize on arrival              │
+│  7 vertices align · Dual lattice (Kyber+Dilithium) verify   │
+│  File: temporal_lattice.py                                  │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 4: DIMENSIONAL FOLDING                               │
+│  3D → 17D lift · Twist through hidden dimensions            │
+│  Gauge errors that cancel · "Wrong math that fixes itself"  │
+│  File: dimensional_fold.py                                  │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 3: HYPERCUBE-BRAIN GEOMETRY                          │
+│  Hypercube [0,1]^n = Policy rules (expandable/retractable)  │
+│  Sphere S^(n-1) = Brain/behavior manifold                   │
+│  Intersection → Kyber(inside) vs Dilithium(outside)         │
+│  File: hypercube_brain.py                                   │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 2: CONCENTRIC RING TRUST TOPOLOGY                    │
+│  Core → Trusted → Verified → Boundary → Exterior            │
+│  Trust decreases outward · Time dilation increases          │
+│  PoW difficulty scales with ring distance                   │
+│  File: geoseal.py                                           │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 1: HARMONIC FOUNDATION                               │
+│  H(d, R) = R^(d²) where R = 1.5 (Perfect Fifth)             │
+│  Golden ratio (φ) for dimensional scaling                   │
+│  Deterministic constants from mathematical harmony          │
+│  File: constants.py, harmonic.py                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. LAYER DETAILS
 
 ### Layer 1: Harmonic Foundation
+
+**Core Formula:**
 ```
 H(d, R) = R^(d²)    where R = 1.5 (Perfect Fifth)
-φ = 1.618...        Golden ratio for dimensional scaling
+φ = 1.6180339887    Golden ratio
 ```
 
-The "music of the spheres" provides:
-- Deterministic, reproducible constants
-- Natural dimensional relationships
-- Aesthetic mathematical coherence
+**Security Scaling:**
+| Dimension | H(d, 1.5) | Meaning |
+|-----------|-----------|---------|
+| d=1 | 1.5 | Basic |
+| d=4 | 656 | Strong |
+| d=7 | 479,000,000 | Extreme |
+
+**Why It Matters:** Provides deterministic, reproducible mathematical constants that scale security exponentially with dimension.
+
+---
 
 ### Layer 2: Concentric Ring Trust Topology
+
 ```
 ┌─────────────────────────────────────┐
 │           EXTERIOR (r > 0.8)        │  Trust: 0.15, γ×2.0, PoW+6
@@ -50,13 +123,21 @@ The "music of the spheres" provides:
 └─────────────────────────────────────┘
 ```
 
-Ring position determines:
-- Base trust level
-- Time dilation multiplier
-- Proof-of-work difficulty
-- Attestation requirements
+**Ring Properties:**
+| Ring | Radius | Trust | Time Dilation | PoW Bits |
+|------|--------|-------|---------------|----------|
+| CORE | 0.0-0.1 | 1.00 | ×0.1 | +0 |
+| TRUSTED | 0.1-0.3 | 0.85 | ×0.3 | +0 |
+| VERIFIED | 0.3-0.5 | 0.65 | ×0.6 | +1 |
+| BOUNDARY | 0.5-0.8 | 0.40 | ×1.0 | +3 |
+| EXTERIOR | 0.8-1.0 | 0.15 | ×2.0 | +6 |
+
+**Why It Matters:** Position on the trust topology determines capabilities, not identity. Continuous gradient, not binary.
+
+---
 
 ### Layer 3: Hypercube-Brain Geometry
+
 ```
 HYPERCUBE [0,1]^n          BRAIN SPHERE S^(n-1)
 (Policy Rules)             (Behavioral Manifold)
@@ -74,70 +155,70 @@ HYPERCUBE [0,1]^n          BRAIN SPHERE S^(n-1)
 **Expansion/Retraction:**
 - High risk → Hypercube expands → Tighter policy boundaries
 - Low risk → Hypercube contracts → Relaxed policy boundaries
-- Continuous, smooth, mathematically defined
+
+**Signature Mode:**
+```python
+if gamma > threshold:
+    return TRAPDOOR_FROZEN    # Attacker trapped
+elif inside_sphere:
+    return KYBER_INTERNAL     # Trusted internal ops
+else:
+    return DILITHIUM_EXTERNAL # Verified external ops
+```
+
+**Why It Matters:** Policy enforcement and encryption are the SAME mathematical operation. No separate ACL to bypass.
+
+---
 
 ### Layer 4: Dimensional Folding
+
 ```
 3D Context → 17D Lift → Twist → Gauge Error → Fold Back → 3D Result
                            │
                     (Errors Cancel)
 ```
 
-"Wrong math that fixes itself":
-- Intentionally introduce gauge errors in higher dimensions
-- Errors designed to cancel upon projection back to 3D
-- Attackers in wrong dimension space accumulate non-canceling errors
+**Process:**
+1. Lift context from 3D to 17D using golden ratio expansion
+2. Apply rotation matrices through hidden dimensions
+3. Introduce gauge errors designed to cancel
+4. Project back to 3D
+
+**Why It Matters:** Attackers in wrong dimensional space accumulate non-canceling errors. "Wrong math that fixes itself" - but only for legitimate users.
+
+---
 
 ### Layer 5: Temporal Lattice Stabilization
+
 ```
 Time t=0                    Time t=T
    │                           │
    ▼                           ▼
 UNSTABLE ──oscillate──► CRYSTALLIZED
 EQUATION                   SOLUTION
-   │                           │
-   │    7 Vertices Must        │
-   │    Align + Dual Lattice   │
-   │    (Kyber + Dilithium)    │
-   │    Must Verify            │
-   └───────────────────────────┘
 ```
 
-Equations don't need to be stable at t=0. They crystallize on arrival when:
-1. All 7 vertices align within tolerance
-2. Kyber commitment verifies
-3. Dilithium signature verifies
+**The 7 Vertices:**
+| # | Vertex | Weight | Purpose |
+|---|--------|--------|---------|
+| 1 | TIME | 1.5 | When operation crystallizes |
+| 2 | X_BEHAVIOR | 1.0 | Behavioral X-axis |
+| 3 | Y_BEHAVIOR | 1.0 | Behavioral Y-axis |
+| 4 | Z_BEHAVIOR | 1.0 | Behavioral Z-axis |
+| 5 | POLICY | 1.2 | Combined policy score |
+| 6 | RING | 1.3 | Trust ring position |
+| 7 | INTENT | 1.4 | Intent binding hash |
+
+**Crystallization Rule:**
+```
+CRYSTALLIZED if: stability ≥ 0.95 AND all 7 aligned AND dual_lattice_verified
+```
+
+**Why It Matters:** Equations don't need to be stable at t=0. Time becomes a security axis. Attackers can't rush - they get trapped in time dilation.
 
 ---
 
-## 3. THE 7-VERTEX SYSTEM
-
-| # | Vertex | Source | Weight | Purpose |
-|---|--------|--------|--------|---------|
-| 1 | TIME | target_time | 1.5 | When operation crystallizes |
-| 2 | X_BEHAVIOR | context[3] normalized | 1.0 | Behavioral X-axis |
-| 3 | Y_BEHAVIOR | context[4] normalized | 1.0 | Behavioral Y-axis |
-| 4 | Z_BEHAVIOR | context[5] normalized | 1.0 | Behavioral Z-axis |
-| 5 | POLICY | mean(policy_values) | 1.2 | Combined policy score |
-| 6 | RING | behavior_stability | 1.3 | Trust ring position |
-| 7 | INTENT | hash(intent)[:4] | 1.4 | Intent binding hash |
-
-**Alignment Formula:**
-```
-stability = Σ(weight_i × aligned_i) / Σ(weight_i)
-
-aligned_i = 1 if |vertex_i.value - target_i| ≤ tolerance_i
-            0 otherwise
-
-CRYSTALLIZED if stability ≥ 0.95 AND all 7 aligned
-OSCILLATING  if stability ≥ 0.70
-UNSTABLE     otherwise
-COLLAPSED    if oscillation_count > max
-```
-
----
-
-## 4. TIME DILATION TRAPDOOR
+## 5. TIME DILATION TRAPDOOR
 
 **Lorentz Factor:**
 ```
@@ -145,59 +226,51 @@ COLLAPSED    if oscillation_count > max
 
 v = 0     → γ = 1.0    (normal time)
 v = 0.5c  → γ = 1.15   (slight dilation)
-v = 0.8c  → γ = 1.67   (noticeable dilation)
-v = 0.95c → γ = 3.20   (significant dilation)
-v → c     → γ → ∞      (time stops - TRAPDOOR)
+v = 0.9c  → γ = 2.29   (TRAPPED)
+v → c     → γ → ∞      (frozen forever)
 ```
 
 **Security Application:**
-- Legitimate users operate at low velocity (γ ≈ 1)
-- Attackers rushing computations push v → c
-- When γ > threshold (e.g., 2.0): operation FROZEN
-- Attacker is trapped in infinite time dilation
-
----
-
-## 5. SIGNATURE MODE DETERMINATION
-
-```python
-def determine_signature_mode(is_inside, gamma, threshold):
-    if gamma > threshold:
-        return TRAPDOOR_FROZEN    # Time trap activated
-    elif is_inside:
-        return KYBER_INTERNAL     # Trusted internal ops
-    else:
-        return DILITHIUM_EXTERNAL # Verified external ops
-```
-
-**Implications:**
-- KYBER_INTERNAL: Fast, assumes trust from geometric proof
-- DILITHIUM_EXTERNAL: Stronger verification for boundary ops
-- TRAPDOOR_FROZEN: No operation possible, attacker caught
+- Legitimate users: low velocity → γ ≈ 1 → normal operation
+- Attackers rushing: high velocity → γ > threshold → FROZEN
 
 ---
 
 ## 6. FAIL-TO-NOISE PRINCIPLE
 
-**Traditional System:**
+**Traditional:**
 ```
 correct_key → plaintext
-wrong_key   → "ACCESS DENIED" or error
+wrong_key   → "ACCESS DENIED"
 ```
-Attacker learns: "I'm close" or "I'm far"
+Attacker learns: boundary information
 
 **SCBE-AETHERMOORE:**
 ```
 correct_context → plaintext
-wrong_context   → random_noise (indistinguishable from ciphertext)
+wrong_context   → random_noise (looks valid)
 ```
 Attacker learns: NOTHING
 
-The decryption always "succeeds" - it just produces noise if context is wrong. No oracle to probe.
+---
+
+## 7. INTENT AS COMPUTATIONAL PRIMITIVE
+
+**Traditional:** Intent is metadata (CPU ignores it)
+```python
+intent = "protect"  # Just a label
+```
+
+**SCBE-AETHERMOORE:** Intent is a coordinate
+```python
+INTENT("seek")    → basin at 0.1
+INTENT("protect") → basin at 0.5
+INTENT("harm")    → outside valid space → noise
+```
 
 ---
 
-## 7. KEY DERIVATION CHAIN
+## 8. KEY DERIVATION CHAIN
 
 ```
 shared_secret (ss)
@@ -212,77 +285,70 @@ shared_secret (ss)
 └──────────────────────────────────────────────────────────┘
 ```
 
-Each key component binds a different geometric property:
-- K_sphere: Behavioral manifold position
-- K_cube: Policy space position
-- K_msg: Combined geometric binding
-- K_ring: Trust ring position
-- K_final: Complete context-bound key
+---
+
+## 9. IMPLEMENTATION STATUS
+
+| Layer | Module | File | Status |
+|-------|--------|------|--------|
+| 1 | Harmonic Foundation | constants.py, harmonic.py | ✅ Complete |
+| 2 | Concentric Rings | geoseal.py | ✅ Complete |
+| 3 | Hypercube-Brain | hypercube_brain.py | ✅ Complete |
+| 4 | Dimensional Folding | dimensional_fold.py | ✅ Complete |
+| 5 | Temporal Lattice | temporal_lattice.py | ✅ Complete |
+| - | Chaos Diffusion | chaos.py | ✅ Complete |
+| - | Manifold KEM | manifold.py | ✅ Complete |
+| - | TypeScript SDK | spiralverse_sdk/ | ✅ Complete |
+| - | AWS Lambda | lambda_handler.py | ✅ Complete |
+| - | Kyber/Dilithium | (simulated) | ⚠️ HMAC placeholder |
 
 ---
 
-## 8. IMPLEMENTATION STATUS
-
-| Module | Status | File |
-|--------|--------|------|
-| Harmonic Foundation | ✅ Complete | constants.py |
-| GeoSeal (Sphere+Cube) | ✅ Complete | geoseal.py |
-| Concentric Rings | ✅ Complete | geoseal.py |
-| Hypercube-Brain | ✅ Complete | hypercube_brain.py |
-| Dimensional Folding | ✅ Complete | dimensional_fold.py |
-| Temporal Lattice | ✅ Complete | temporal_lattice.py |
-| Chaos Diffusion | ✅ Complete | chaos.py |
-| Manifold KEM | ✅ Complete | manifold.py |
-| TypeScript SDK | ✅ Complete | spiralverse_sdk/ |
-
----
-
-## 9. NOVEL PATENT CLAIMS
+## 10. NOVEL PATENT CLAIMS
 
 ### Claim 1: Geometric Context Binding
-> A method for cryptographic key derivation wherein the encryption key is mathematically derived from the intersection of a behavioral manifold (sphere) and policy space (hypercube), such that no separate access control layer exists.
+> Key derivation from intersection of behavioral manifold (sphere) and policy space (hypercube), eliminating separate access control.
 
 ### Claim 2: Time Dilation Trapdoor
-> A computational trapdoor mechanism using relativistic time dilation wherein operations exceeding a velocity threshold experience infinite time dilation, trapping attackers in a frozen computational state.
+> Computational trapdoor using relativistic time dilation to freeze attackers exceeding velocity threshold.
 
 ### Claim 3: Fail-to-Noise Decryption
-> A decryption method that always produces output, yielding plaintext for correct context and cryptographically indistinguishable noise for incorrect context, eliminating decryption oracles.
+> Decryption that always succeeds, producing plaintext for correct context and indistinguishable noise otherwise.
 
 ### Claim 4: Risk-Adaptive Geometric Expansion
-> A policy enforcement mechanism wherein the policy hypercube expands under high risk conditions and contracts under low risk, providing continuous, mathematically smooth security adaptation.
+> Policy hypercube that expands under high risk and contracts under low risk.
 
 ### Claim 5: Temporal Crystallization
-> A cryptographic verification method wherein equations are permitted to be unstable at initialization and crystallize to valid solutions only when multiple vertices align and dual lattice proofs verify.
+> Equations permitted to be unstable at initialization, crystallizing when vertices align and dual lattice verifies.
+
+### Claim 6: Intent as Computational Primitive
+> Intent encoded as coordinate in constraint space, making unethical operations geometrically impossible.
 
 ---
 
-## 10. SECURITY ANALYSIS
+## 11. THE BIG PICTURE
 
-### Strengths
-- No separate ACL layer to bypass
-- Fail-to-noise eliminates oracles
-- Time dilation punishes brute force
-- Post-quantum ready architecture
+**What This Really Is:**
 
-### Assumptions
-- Context authenticity (sensors not compromised)
-- Time source integrity
-- Proper random seed generation
+Not "encryption + access control" but **constraint-based computation where ethics are geometric**.
 
-### Attack Surfaces
-- Context spoofing (mitigated by multi-factor context)
-- Ring boundary attacks (mitigated by transition zones)
-- Dimensional fold oracle (mitigated by gauge error design)
+```
+Traditional:  if authorized: do_thing()
+SCBE:         thing only exists inside valid geometric space
+```
+
+You can't jailbreak a shape. You can only be inside it or outside it.
 
 ---
 
-## 11. FUTURE WORK
+## 12. FUTURE WORK
 
-1. **Real Kyber/Dilithium Integration**: Replace HMAC simulations with actual post-quantum implementations
-2. **Hardware Binding**: Extend context to include TPM attestation
-3. **Distributed Rings**: Multi-node ring consensus for decentralized trust
-4. **Formal Verification**: Prove security properties in Coq/Lean
+1. **Real Kyber/Dilithium**: Replace HMAC simulations with pqcrypto
+2. **Hardware Binding**: TPM attestation in context vector
+3. **Distributed Rings**: Multi-node consensus
+4. **Formal Verification**: Prove properties in Coq/Lean
+5. **Continuous Computing**: Hardware that works natively with gradients, not binary
 
 ---
 
-*SCBE-AETHERMOORE: Where geometry IS security.*
+*SCBE-AETHERMOORE: Where geometry IS security. Where ethics ARE the math.*
