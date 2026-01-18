@@ -1,6 +1,13 @@
 #!/bin/bash
-# SCBE-AETHERMOORE CLI Launcher (Unix/Linux/macOS)
-# Usage: ./scbe
+# SCBE-AETHERMOORE Unified Launcher (Unix/Linux/macOS)
+#
+# Usage:
+#   ./scbe           - Interactive CLI (default)
+#   ./scbe cli       - Interactive CLI with tutorial
+#   ./scbe agent     - Polly AI Agent
+#   ./scbe demo      - Run demo
+#   ./scbe memory    - AI Memory Shard demo
+#   ./scbe api       - Start REST API server
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -10,4 +17,57 @@ if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
 fi
 
-python3 scbe-cli.py "$@"
+# Parse command
+MODE="${1:-cli}"
+
+case "$MODE" in
+    cli|tutorial)
+        python3 scbe-cli.py "${@:2}"
+        ;;
+    agent|polly)
+        python3 scbe-agent.py "${@:2}"
+        ;;
+    demo)
+        python3 demo.py "${@:2}"
+        ;;
+    memory|shard)
+        python3 demo_memory_shard.py "${@:2}"
+        ;;
+    integrated)
+        python3 demo_integrated_memory_shard.py "${@:2}"
+        ;;
+    api|server)
+        python3 -m scbe_production.api "${@:2}"
+        ;;
+    web)
+        echo "Opening web demo..."
+        if command -v xdg-open &> /dev/null; then
+            xdg-open web/index.html
+        elif command -v open &> /dev/null; then
+            open web/index.html
+        else
+            echo "Open web/index.html in your browser"
+        fi
+        ;;
+    help|--help|-h)
+        echo "SCBE-AETHERMOORE Launcher"
+        echo ""
+        echo "Usage: ./scbe [command]"
+        echo ""
+        echo "Commands:"
+        echo "  cli, tutorial    Interactive CLI with tutorial (default)"
+        echo "  agent, polly     Polly AI Agent"
+        echo "  demo             Run basic demo"
+        echo "  memory, shard    AI Memory Shard demo"
+        echo "  integrated       Full integrated demo"
+        echo "  api, server      Start REST API server"
+        echo "  web              Open web demo in browser"
+        echo "  help             Show this help"
+        echo ""
+        ;;
+    *)
+        echo "Unknown command: $MODE"
+        echo "Run './scbe help' for usage"
+        exit 1
+        ;;
+esac
