@@ -1,0 +1,450 @@
+name: Enterprise Test Suite
+
+on:
+  push:
+    branches: [main, develop, 'release/*']
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_category:
+        description: 'Test category to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - quantum
+          - ai_safety
+          - compliance
+          - stress
+          - agentic
+      stress_level:
+        description: 'Stress test level'
+        required: false
+        default: 'light'
+        type: choice
+        options:
+          - light
+          - medium
+          - heavy
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================================================
+  # Quick Tests (Run on every push)
+  # ===========================================================================
+  quick-tests:
+    name: Quick Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout pytest-xdist
+
+      - name: Run quick tests
+        run: |
+          python -m pytest tests/enterprise/ \
+            --ignore=tests/enterprise/stress/ \
+            -v --tb=short \
+            --timeout=60 \
+            -n auto \
+            --junitxml=test-results/quick-tests.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quick-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # Quantum Attack Simulation Tests
+  # ===========================================================================
+  quantum-tests:
+    name: Quantum Attack Simulation
+    runs-on: ubuntu-latest
+    needs: quick-tests
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'quantum')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout hypothesis
+
+      - name: Run quantum tests
+        run: |
+          python -m pytest tests/enterprise/quantum/ \
+            -v --tb=short \
+            -m quantum \
+            --timeout=300 \
+            --cov=symphonic_cipher \
+            --cov-report=xml \
+            --junitxml=test-results/quantum-tests.xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          flags: quantum
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quantum-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # AI Safety Tests
+  # ===========================================================================
+  ai-safety-tests:
+    name: AI Safety Testing
+    runs-on: ubuntu-latest
+    needs: quick-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout
+
+      - name: Run AI safety tests
+        run: |
+          python -m pytest tests/enterprise/ai_safety/ \
+            -v --tb=short \
+            -m ai_safety \
+            --timeout=120 \
+            --cov=symphonic_cipher \
+            --cov-report=xml \
+            --junitxml=test-results/ai-safety-tests.xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          flags: ai_safety
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-safety-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # Compliance Tests
+  # ===========================================================================
+  compliance-tests:
+    name: Compliance Testing
+    runs-on: ubuntu-latest
+    needs: quick-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout pytest-html
+
+      - name: Run compliance tests
+        run: |
+          python -m pytest tests/enterprise/compliance/ \
+            -v --tb=short \
+            -m compliance \
+            --timeout=180 \
+            --cov=symphonic_cipher \
+            --cov-report=xml \
+            --html=reports/compliance-report.html \
+            --self-contained-html \
+            --junitxml=test-results/compliance-tests.xml
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compliance-report
+          path: reports/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compliance-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # Stress Tests (Scheduled or Manual)
+  # ===========================================================================
+  stress-tests:
+    name: Stress Testing
+    runs-on: ubuntu-latest
+    needs: quick-tests
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-timeout memory_profiler
+
+      - name: Run stress tests
+        run: |
+          python -m pytest tests/enterprise/stress/ \
+            -v --tb=short \
+            -m stress \
+            --timeout=600 \
+            --stress-level=${{ github.event.inputs.stress_level || 'light' }} \
+            --junitxml=test-results/stress-tests.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stress-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # Agentic Coding Tests
+  # ===========================================================================
+  agentic-tests:
+    name: Agentic Coding Tests
+    runs-on: ubuntu-latest
+    needs: quick-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-timeout bandit
+
+      - name: Run agentic tests
+        run: |
+          python -m pytest tests/enterprise/agentic/ \
+            -v --tb=short \
+            -m agentic \
+            --timeout=120 \
+            --cov=symphonic_cipher \
+            --cov-report=xml \
+            --junitxml=test-results/agentic-tests.xml
+
+      - name: Run security scan
+        run: |
+          bandit -r symphonic_cipher/ -f json -o reports/security-scan.json || true
+
+      - name: Upload security scan
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan
+          path: reports/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agentic-test-results
+          path: test-results/
+
+  # ===========================================================================
+  # Test Result Aggregation
+  # ===========================================================================
+  aggregate-results:
+    name: Aggregate Results
+    runs-on: ubuntu-latest
+    needs: [quantum-tests, ai-safety-tests, compliance-tests, agentic-tests]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Generate summary report
+        run: |
+          python << 'EOF'
+          import os
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          results = {
+              "total": 0,
+              "passed": 0,
+              "failed": 0,
+              "errors": 0,
+              "skipped": 0,
+              "categories": {}
+          }
+
+          artifacts_dir = Path("artifacts")
+          for category_dir in artifacts_dir.iterdir():
+              if category_dir.is_dir():
+                  for xml_file in category_dir.glob("*.xml"):
+                      try:
+                          tree = ET.parse(xml_file)
+                          root = tree.getroot()
+
+                          tests = int(root.get("tests", 0))
+                          failures = int(root.get("failures", 0))
+                          errors = int(root.get("errors", 0))
+                          skipped = int(root.get("skipped", 0))
+
+                          results["total"] += tests
+                          results["failed"] += failures
+                          results["errors"] += errors
+                          results["skipped"] += skipped
+                          results["passed"] += tests - failures - errors - skipped
+
+                          category = category_dir.name.replace("-test-results", "")
+                          results["categories"][category] = {
+                              "total": tests,
+                              "passed": tests - failures - errors - skipped,
+                              "failed": failures,
+                              "errors": errors
+                          }
+                      except Exception as e:
+                          print(f"Error parsing {xml_file}: {e}")
+
+          # Calculate pass rate
+          results["pass_rate"] = results["passed"] / results["total"] * 100 if results["total"] > 0 else 0
+
+          # Write summary
+          with open("test-summary.json", "w") as f:
+              json.dump(results, f, indent=2)
+
+          # Print summary
+          print("\n" + "="*60)
+          print("ENTERPRISE TEST SUITE SUMMARY")
+          print("="*60)
+          print(f"Total Tests: {results['total']}")
+          print(f"Passed: {results['passed']}")
+          print(f"Failed: {results['failed']}")
+          print(f"Errors: {results['errors']}")
+          print(f"Skipped: {results['skipped']}")
+          print(f"Pass Rate: {results['pass_rate']:.1f}%")
+          print("\nBy Category:")
+          for cat, data in results["categories"].items():
+              print(f"  {cat}: {data['passed']}/{data['total']} passed")
+          print("="*60)
+
+          # Set output for GitHub Actions
+          with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f:
+              f.write("## Enterprise Test Suite Results\n\n")
+              f.write(f"| Metric | Value |\n")
+              f.write(f"|--------|-------|\n")
+              f.write(f"| Total Tests | {results['total']} |\n")
+              f.write(f"| Passed | {results['passed']} |\n")
+              f.write(f"| Failed | {results['failed']} |\n")
+              f.write(f"| Pass Rate | {results['pass_rate']:.1f}% |\n")
+          EOF
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary
+          path: test-summary.json
+
+  # ===========================================================================
+  # Deploy Compliance Dashboard (on main branch)
+  # ===========================================================================
+  deploy-dashboard:
+    name: Deploy Compliance Dashboard
+    runs-on: ubuntu-latest
+    needs: aggregate-results
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download compliance report
+        uses: actions/download-artifact@v4
+        with:
+          name: compliance-report
+          path: public/
+
+      - name: Copy dashboard files
+        run: |
+          mkdir -p public
+          cp web/compliance-dashboard.html public/index.html
+          cp web/landing.html public/landing.html || true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -344,6 +344,8 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "stress: mark test as stress test")
     config.addinivalue_line("markers", "agentic: mark test as agentic coding test")
     config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "formal: mark test as formal verification test")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
 
 
 def pytest_collection_modifyitems(config, items):
