@@ -272,6 +272,13 @@ class VoxelEntry:
     timestamp: float = field(default_factory=time.time)
 
     @property
+    def cymatic_modes(self) -> Tuple[float, int]:
+        """Extract cymatic modes (n, m) from position for resonance checking."""
+        n = abs(self.position[3])  # Mode n from velocity
+        m = self.position[5]       # Mode m from mode dimension
+        return (float(n), m)
+
+    @property
     def harmonic_signature(self) -> bytes:
         """Compute harmonic signature of this voxel."""
         pos_bytes = b"".join(p.to_bytes(2, "big") for p in self.position)
@@ -283,22 +290,116 @@ def harmonic_distance(pos1: Tuple[int, ...], pos2: Tuple[int, ...]) -> float:
     Compute harmonic distance between two 6D voxel positions.
 
     Uses golden ratio and perfect fifth weighted Euclidean distance.
+    Matches TS SDK: g = [1, 1, 1, R5, R5², R5³]
     """
     if len(pos1) != len(pos2):
         raise ValueError("Positions must have same dimensions")
 
-    # Harmonic weights: [x, y, z, v, phase, mode]
-    # - Spatial (x,y,z): weight 1.0
-    # - Velocity (v): weight PHI (time-like dimension)
-    # - Phase: weight PHI^2 (quantum phase)
-    # - Mode: weight HARMONIC_RATIO (frequency mode)
-    weights = [1.0, 1.0, 1.0, GOLDEN_RATIO, GOLDEN_RATIO**2, HARMONIC_RATIO]
+    # Harmonic weights from TS SDK: [1, 1, 1, R5, R5², R5³]
+    R5 = HARMONIC_RATIO
+    weights = [1.0, 1.0, 1.0, R5, R5**2, R5**3]
 
     squared_sum = 0.0
     for i, (a, b) in enumerate(zip(pos1, pos2)):
         squared_sum += weights[i] * (a - b) ** 2
 
     return math.sqrt(squared_sum)
+
+
+# =============================================================================
+# CYMATIC RESONANCE (from TS SDK)
+# =============================================================================
+
+DEFAULT_L = 100.0  # Cavity length for standing wave calculations
+DEFAULT_TOLERANCE = 0.01  # Nodal surface tolerance
+
+
+def nodal_surface(x: Tuple[float, float], n: float, m: float, L: float = DEFAULT_L) -> float:
+    """
+    Compute nodal surface value for cymatic resonance.
+
+    The nodal surface is where two standing wave modes interfere:
+        N(x₁,x₂) = cos(nπx₁/L)cos(mπx₂/L) - cos(mπx₁/L)cos(nπx₂/L)
+
+    Points where N ≈ 0 are on nodal lines (resonance points).
+
+    Args:
+        x: 2D position (x₁, x₂)
+        n: First mode number (from velocity dimension)
+        m: Second mode number (from mode dimension)
+        L: Cavity length
+
+    Returns:
+        Nodal surface value (0 = on nodal line = resonant)
+    """
+    x1, x2 = x
+    a = math.cos((n * math.pi * x1) / L) * math.cos((m * math.pi * x2) / L)
+    b = math.cos((m * math.pi * x1) / L) * math.cos((n * math.pi * x2) / L)
+    return a - b
+
+
+def check_cymatic_resonance(
+    agent_vector: Tuple[int, ...],
+    target_position: Tuple[float, float],
+    tolerance: float = DEFAULT_TOLERANCE,
+    L: float = DEFAULT_L
+) -> bool:
+    """
+    Check if an agent vector resonates with a target position.
+
+    Uses the velocity (v) and mode dimensions of the 6D vector to derive
+    standing wave modes (n, m), then checks if the target position lies
+    on a nodal line of the interference pattern.
+
+    Args:
+        agent_vector: 6D vector [x, y, z, v, phase, mode]
+        target_position: 2D position to check (x, y)
+        tolerance: How close to nodal line counts as resonant
+        L: Cavity length
+
+    Returns:
+        True if position is resonant (on or near nodal line)
+    """
+    v_ref = 1.0  # Reference velocity
+    n = abs(agent_vector[3]) / v_ref  # Mode from velocity
+    m = agent_vector[5]  # Mode from mode dimension
+
+    N = nodal_surface(target_position, n, m, L)
+    return abs(N) < tolerance
+
+
+def bottle_beam_intensity(
+    position: Tuple[float, float, float],
+    sources: List[Dict[str, Any]],
+    wavelength: float
+) -> float:
+    """
+    Compute acoustic bottle beam intensity at a position.
+
+    Multiple sources interfere to create acoustic traps (high intensity regions
+    surrounded by low intensity). Used for physics-based access control.
+
+    Args:
+        position: 3D position (x, y, z)
+        sources: List of {"pos": (x,y,z), "phase": float}
+        wavelength: Acoustic wavelength
+
+    Returns:
+        Intensity (|E|²) at position
+    """
+    k = (2 * math.pi) / wavelength
+    re, im = 0.0, 0.0
+
+    for s in sources:
+        dx = position[0] - s["pos"][0]
+        dy = position[1] - s["pos"][1]
+        dz = position[2] - s["pos"][2]
+        r = math.sqrt(dx*dx + dy*dy + dz*dz) + 1e-12  # Avoid division by zero
+        theta = k * r + s["phase"]
+        re += math.cos(theta)
+        im += math.sin(theta)
+
+    return re*re + im*im  # Intensity = |amplitude|²
 
 
 class HarmonicVoxelCube:
@@ -406,6 +507,34 @@ class HarmonicVoxelCube:
 
         distances.sort(key=lambda x: x[1])
         return distances[:k]
+
+    def scan_resonant(
+        self,
+        agent_vector: Tuple[int, ...],
+        tolerance: float = DEFAULT_TOLERANCE,
+        L: float = DEFAULT_L
+    ) -> Optional[VoxelEntry]:
+        """
+        Scan for voxels using cymatic resonance (matches TS SDK behavior).
+
+        Uses standing wave nodal surface calculations to find voxels that
+        resonate with the agent's frequency modes. This is physics-based
+        retrieval rather than simple coordinate matching.
+
+        Args:
+            agent_vector: 6D vector [x, y, z, v, phase, mode]
+            tolerance: How close to nodal line counts as resonant
+            L: Cavity length for standing wave calculations
+
+        Returns:
+            First resonant VoxelEntry, or None if no match
+        """
+        for voxel in self._voxels.values():
+            # Check cymatic resonance using x,y coordinates
+            target_pos = (float(voxel.position[0]), float(voxel.position[1]))
+            if check_cymatic_resonance(agent_vector, target_pos, tolerance, L):
+                return voxel
+        return None
 
     def __len__(self) -> int:
         return len(self._voxels)
