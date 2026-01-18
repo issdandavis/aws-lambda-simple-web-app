@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCBE-AETHERMOORE | Quantum-Safe AI Security</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, rgba(0,212,255,0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(0,255,136,0.1) 0%, transparent 50%);
+            animation: pulse 10s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+        }
+
+        .logo {
+            font-size: 4em;
+            font-weight: 900;
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 50%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .tagline {
+            font-size: 1.8em;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #888;
+            margin-bottom: 40px;
+            max-width: 700px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+            color: #0a0a0f;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,212,255,0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #00d4ff;
+            color: #00d4ff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0,212,255,0.1);
+        }
+
+        .features {
+            padding: 100px 20px;
+            background: #0f0f14;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            color: #fff;
+            margin-bottom: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d4ff;
+            box-shadow: 0 10px 40px rgba(0,212,255,0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 1.4em;
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .feature-desc {
+            color: #888;
+        }
+
+        .stats {
+            padding: 80px 20px;
+            background: linear-gradient(90deg, rgba(0,212,255,0.1) 0%, rgba(0,255,136,0.1) 100%);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .stat-item .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-item .label {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .architecture {
+            padding: 100px 20px;
+            background: #0a0a0f;
+        }
+
+        .arch-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .arch-layer {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .arch-layer:nth-child(even) {
+            border-left-color: #00ff88;
+        }
+
+        .layer-num {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00d4ff;
+            min-width: 60px;
+        }
+
+        .layer-name {
+            font-weight: bold;
+            color: #fff;
+            min-width: 200px;
+        }
+
+        .layer-desc {
+            color: #888;
+        }
+
+        .compliance {
+            padding: 100px 20px;
+            background: #0f0f14;
+        }
+
+        .compliance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .compliance-badge {
+            background: rgba(0,212,255,0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .badge-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .badge-status {
+            color: #00ff88;
+        }
+
+        .pricing {
+            padding: 100px 20px;
+            background: #0a0a0f;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .pricing-card.featured {
+            border-color: #00d4ff;
+            transform: scale(1.05);
+        }
+
+        .plan-name {
+            font-size: 1.5em;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .plan-price {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .plan-period {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .plan-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .plan-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #888;
+        }
+
+        .plan-features li::before {
+            content: '✓';
+            color: #00ff88;
+            margin-right: 10px;
+        }
+
+        footer {
+            background: #050508;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #888;
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: #00d4ff;
+        }
+
+        .copyright {
+            color: #444;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5em;
+            }
+
+            .tagline {
+                font-size: 1.3em;
+            }
+
+            .pricing-card.featured {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="logo">SCBE-AETHERMOORE</h1>
+            <p class="tagline">Quantum-Safe AI Security for the Post-Quantum Era</p>
+            <p class="subtitle">
+                14-layer hyperbolic geometry pipeline with post-quantum cryptography,
+                AI governance, and human-readable Sacred Tongue encoding.
+                Enterprise-grade security that's ready for tomorrow.
+            </p>
+            <div class="cta-buttons">
+                <a href="#pricing" class="btn btn-primary">Start Free Trial</a>
+                <a href="index.html" class="btn btn-secondary">Try Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <h2 class="section-title">Why SCBE-AETHERMOORE?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔐</div>
+                <h3 class="feature-title">Post-Quantum Ready</h3>
+                <p class="feature-desc">
+                    ML-KEM-768 and ML-DSA-65 algorithms protect against
+                    both classical and quantum attacks. Future-proof your security today.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">AI Governance</h3>
+                <p class="feature-desc">
+                    14-layer hyperbolic pipeline with harmonic scaling ensures
+                    AI decisions are safe, deterministic, and auditable.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📜</div>
+                <h3 class="feature-title">Sacred Tongues</h3>
+                <p class="feature-desc">
+                    6 cryptolinguistic encodings make encrypted data human-readable
+                    while maintaining full cryptographic security.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3 class="feature-title">GeoSeal Verification</h3>
+                <p class="feature-desc">
+                    Dual-space manifold (Sphere + Hypercube) provides
+                    location-aware trust verification for distributed systems.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3 class="feature-title">PHDM Defense</h3>
+                <p class="feature-desc">
+                    16-polyhedra Hamiltonian defense manifold with HMAC chaining
+                    provides geometric attack resistance.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3 class="feature-title">Polly AI Agent</h3>
+                <p class="feature-desc">
+                    Autonomous coding assistant with Sacred Tongue AI-to-AI
+                    communication and security scanning.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="number">14</div>
+                <div class="label">Security Layers</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">128+</div>
+                <div class="label">Post-Quantum Bits</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">1M+</div>
+                <div class="label">Requests/Second</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">99.99%</div>
+                <div class="label">Uptime SLA</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="architecture">
+        <h2 class="section-title">14-Layer Security Architecture</h2>
+        <div class="arch-container">
+            <div class="arch-layer">
+                <span class="layer-num">1-2</span>
+                <span class="layer-name">Context Embedding</span>
+                <span class="layer-desc">Poincare ball projection for hyperbolic representation</span>
+            </div>
+            <div class="arch-layer">
+                <span class="layer-num">3-5</span>
+                <span class="layer-name">Geometric Analysis</span>
+                <span class="layer-desc">Hyperbolic distance, geodesic routing, curvature analysis</span>
+            </div>
+            <div class="arch-layer">
+                <span class="layer-num">6-7</span>
+                <span class="layer-name">Sacred Decode</span>
+                <span class="layer-desc">Sacred Tongue decoding with semantic validation</span>
+            </div>
+            <div class="arch-layer">
+                <span class="layer-num">8-10</span>
+                <span class="layer-name">Trust Verification</span>
+                <span class="layer-desc">Trust manifold, GeoSeal, SpiralSeal verification</span>
+            </div>
+            <div class="arch-layer">
+                <span class="layer-num">11-12</span>
+                <span class="layer-name">Governance</span>
+                <span class="layer-desc">Policy rules with Byzantine-tolerant swarm consensus</span>
+            </div>
+            <div class="arch-layer">
+                <span class="layer-num">13-14</span>
+                <span class="layer-name">Final Decision</span>
+                <span class="layer-desc">Harmonic scaling and ALLOW/QUARANTINE/DENY/SNAP</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="compliance">
+        <h2 class="section-title">Enterprise Compliance</h2>
+        <div class="compliance-grid">
+            <div class="compliance-badge">
+                <div class="badge-name">SOC 2 Type II</div>
+                <div class="badge-status">Compliant</div>
+            </div>
+            <div class="compliance-badge">
+                <div class="badge-name">ISO 27001</div>
+                <div class="badge-status">Certified</div>
+            </div>
+            <div class="compliance-badge">
+                <div class="badge-name">FIPS 140-3</div>
+                <div class="badge-status">Level 3</div>
+            </div>
+            <div class="compliance-badge">
+                <div class="badge-name">Common Criteria</div>
+                <div class="badge-status">EAL4+</div>
+            </div>
+            <div class="compliance-badge">
+                <div class="badge-name">NIST PQC</div>
+                <div class="badge-status">Ready</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <h2 class="section-title">Simple, Transparent Pricing</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3 class="plan-name">Developer</h3>
+                <div class="plan-price">$0</div>
+                <div class="plan-period">forever</div>
+                <ul class="plan-features">
+                    <li>Core encryption</li>
+                    <li>2 Sacred Tongues</li>
+                    <li>1,000 API calls/mo</li>
+                    <li>CLI tools</li>
+                    <li>Community support</li>
+                </ul>
+                <a href="#" class="btn btn-secondary">Get Started</a>
+            </div>
+            <div class="pricing-card featured">
+                <h3 class="plan-name">Business</h3>
+                <div class="plan-price">$2,499</div>
+                <div class="plan-period">per month</div>
+                <ul class="plan-features">
+                    <li>Full 14-layer pipeline</li>
+                    <li>All 6 Sacred Tongues</li>
+                    <li>PQC algorithms</li>
+                    <li>1M API calls/mo</li>
+                    <li>SOC 2 reporting</li>
+                    <li>99.9% SLA</li>
+                </ul>
+                <a href="#" class="btn btn-primary">Start Trial</a>
+            </div>
+            <div class="pricing-card">
+                <h3 class="plan-name">Enterprise</h3>
+                <div class="plan-price">Custom</div>
+                <div class="plan-period">contact sales</div>
+                <ul class="plan-features">
+                    <li>Unlimited everything</li>
+                    <li>On-premise option</li>
+                    <li>Custom development</li>
+                    <li>99.99% SLA</li>
+                    <li>24/7 support</li>
+                    <li>Dedicated CSM</li>
+                </ul>
+                <a href="#" class="btn btn-secondary">Contact Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-links">
+            <a href="#">Documentation</a>
+            <a href="#">API Reference</a>
+            <a href="#">GitHub</a>
+            <a href="#">Status</a>
+            <a href="#">Security</a>
+            <a href="#">Contact</a>
+        </div>
+        <p class="copyright">2026 SCBE-AETHERMOORE. Quantum-safe security for the AI era.</p>
+    </footer>
+</body>
+</html>

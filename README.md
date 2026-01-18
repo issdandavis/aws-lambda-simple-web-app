@@ -214,6 +214,44 @@ print(f'Confidence: {result.confidence:.0%}')
 
 ---
 
+## Enterprise Testing Suite
+
+SCBE-AETHERMOORE includes a comprehensive enterprise-grade testing framework for compliance and certification.
+
+### Test Categories
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| **Quantum Attack Simulation** | Shor's, Grover's, Lattice, Side-channel | 6 test suites |
+| **AI Safety** | Intent classification, Adversarial prompts, Governance, Consensus | 4 test suites |
+| **Compliance** | SOC 2, ISO 27001, FIPS 140-3, Common Criteria | 4 test suites |
+| **Stress Testing** | Throughput, Latency, Concurrent attacks, Memory | 4 test suites |
+| **Agentic Coding** | Vulnerability scan, Rollback, Sandbox isolation | 3 test suites |
+
+### Running Enterprise Tests
+
+```bash
+# Run all enterprise tests
+python run_enterprise_tests.py
+
+# Run specific categories
+python run_enterprise_tests.py --quantum
+python run_enterprise_tests.py --compliance
+python run_enterprise_tests.py --stress
+
+# Quick tests only (skip slow)
+python run_enterprise_tests.py --quick
+
+# Generate HTML report
+python run_enterprise_tests.py --report
+```
+
+### Compliance Dashboard
+
+Open `web/compliance-dashboard.html` for a real-time compliance status dashboard.
+
+---
+
 ## What's In This Codebase
 
 | Folder | What It Does |
