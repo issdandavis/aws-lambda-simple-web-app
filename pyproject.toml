@@ -1,0 +1,109 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scbe-aethermoore"
+version = "3.0.0"
+description = "Spectral Context-Bound Encryption with GeoSeal Geometric Trust Manifold and Spiralverse Protocol"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "SCBE Systems", email = "contact@scbe.systems"}
+]
+keywords = [
+    "cryptography",
+    "post-quantum",
+    "security",
+    "ai-safety",
+    "hyperbolic-geometry",
+    "lattice-cryptography",
+    "kyber",
+    "dilithium"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "numpy>=1.24.0",
+    "pqcrypto>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "flake8>=6.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/issdandavis/scbe-aethermoore"
+Documentation = "https://github.com/issdandavis/scbe-aethermoore#readme"
+Repository = "https://github.com/issdandavis/scbe-aethermoore.git"
+Issues = "https://github.com/issdandavis/scbe-aethermoore/issues"
+
+[project.scripts]
+scbe = "scbe_production.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["symphonic_cipher", "scbe_production"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/symphonic_cipher",
+    "/scbe_production",
+    "/docs",
+    "/tests",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --cov=symphonic_cipher --cov=scbe_production --cov-report=term-missing"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["symphonic_cipher", "scbe_production"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
