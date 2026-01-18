@@ -25,6 +25,8 @@ from .quasicrystal import (
     # Verification
     verify_icosahedral_symmetry,
     compute_diffraction_pattern,
+    diffraction_fingerprint,
+    quasicrystal_coherence,
     # Constants
     TAU, ICOSAHEDRAL_MATRIX,
 )
@@ -33,9 +35,12 @@ from .phdm import (
     # Core PHDM
     PolyhedralDefenseManifold,
     PHDMState,
+    PHDMStatus,
+    PolyhedronDef,
     # Polyhedra
     PLATONIC_SOLIDS,
     ARCHIMEDEAN_SOLIDS,
+    ALL_POLYHEDRA,
     # Verification
     verify_euler_characteristic,
     compute_hamiltonian_path,
@@ -50,13 +55,18 @@ __all__ = [
     "generate_quasicrystal_vertices",
     "verify_icosahedral_symmetry",
     "compute_diffraction_pattern",
+    "diffraction_fingerprint",
+    "quasicrystal_coherence",
     "TAU",
     "ICOSAHEDRAL_MATRIX",
     # PHDM
     "PolyhedralDefenseManifold",
     "PHDMState",
+    "PHDMStatus",
+    "PolyhedronDef",
     "PLATONIC_SOLIDS",
     "ARCHIMEDEAN_SOLIDS",
+    "ALL_POLYHEDRA",
     "verify_euler_characteristic",
     "compute_hamiltonian_path",
     "detect_topological_anomaly",
