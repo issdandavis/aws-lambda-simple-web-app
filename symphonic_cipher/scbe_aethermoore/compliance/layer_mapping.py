@@ -215,7 +215,9 @@ STANDARD_LAYER_MAPPING: Dict[ComplianceStandard, Set[SCBELayer]] = {
 
 # Test category to layer mappings
 TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
-    # Self-Healing Workflow
+    # ==========================================================================
+    # 1. Self-Healing Workflow (Tests 101-110)
+    # ==========================================================================
     "self_healing": {
         SCBELayer.L7_TRAJECTORY_SMOOTH,
         SCBELayer.L9_CRYPTO_INTEGRITY,
@@ -226,8 +228,22 @@ TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
         SCBELayer.L8_BOUNDARY_PROXIMITY,
         SCBELayer.L12_ENERGY_CONSERVATION,
     },
+    "retry_logic": {
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+    },
+    "exponential_backoff": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "health_metrics": {
+        SCBELayer.L4_ENTROPY_FLOW,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
 
-    # Medical AI-to-AI
+    # ==========================================================================
+    # 2. Medical AI-to-AI Communication (Tests 111-125) - HIPAA
+    # ==========================================================================
     "medical_phi": {
         SCBELayer.L5_QUANTUM_COHERENCE,
         SCBELayer.L6_SESSION_KEY,
@@ -238,8 +254,19 @@ TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
         SCBELayer.L10_TEMPORAL_CONSISTENCY,
         SCBELayer.L14_GOVERNANCE_DECISION,
     },
+    "patient_id_hashing": {
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+    },
+    "multi_ai_chain": {
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
 
-    # Military-Grade
+    # ==========================================================================
+    # 3. Military-Grade Security (Tests 126-140) - NIST 800-53 / FIPS 140-3
+    # ==========================================================================
     "military_classification": {
         SCBELayer.L1_AXIOM_VERIFIER,
         SCBELayer.L5_QUANTUM_COHERENCE,
@@ -250,8 +277,19 @@ TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
         SCBELayer.L6_SESSION_KEY,
         SCBELayer.L10_TEMPORAL_CONSISTENCY,
     },
+    "classification_levels": {
+        SCBELayer.L13_DECISION_BOUNDARY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "nist_controls": {
+        SCBELayer.L1_AXIOM_VERIFIER,
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
 
-    # Adversarial Resistance
+    # ==========================================================================
+    # 4. Adversarial Attack Resistance (Tests 141-155)
+    # ==========================================================================
     "replay_attack": {
         SCBELayer.L9_CRYPTO_INTEGRITY,
         SCBELayer.L10_TEMPORAL_CONSISTENCY,
@@ -274,8 +312,150 @@ TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
         SCBELayer.L6_SESSION_KEY,
         SCBELayer.L9_CRYPTO_INTEGRITY,
     },
+    "injection_attack": {
+        SCBELayer.L8_BOUNDARY_PROXIMITY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
 
-    # Zero-Trust
+    # ==========================================================================
+    # 5. Quantum Resistant Crypto (Tests 156-170)
+    # ==========================================================================
+    "kyber_kem": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L6_SESSION_KEY,
+    },
+    "dilithium_signature": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
+    "hybrid_key_derivation": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
+    "pqc_session": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L6_SESSION_KEY,
+    },
+
+    # ==========================================================================
+    # 6. Chaos Engineering / Fault Injection (Tests 171-185)
+    # ==========================================================================
+    "chaos_engineering": {
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L8_BOUNDARY_PROXIMITY,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "random_failure": {
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "network_partition": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "memory_pressure": {
+        SCBELayer.L4_ENTROPY_FLOW,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+
+    # ==========================================================================
+    # 7. Performance & Scalability (Tests 186-195)
+    # ==========================================================================
+    "performance": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "throughput": {
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+    "latency": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+    },
+    "concurrent_load": {
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L12_ENERGY_CONSERVATION,
+    },
+
+    # ==========================================================================
+    # 8. Compliance Audit (Tests 196-210)
+    # ==========================================================================
+    "compliance_audit": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "hipaa_audit": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "pci_dss_audit": {
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+    },
+    "sox_audit": {
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "gdpr_audit": {
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "iso27001_audit": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+
+    # ==========================================================================
+    # 9. Financial Critical Infrastructure (Tests 211-220) - PCI-DSS
+    # ==========================================================================
+    "financial_critical": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+    },
+    "transaction_integrity": {
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+    },
+    "hsm_simulation": {
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
+
+    # ==========================================================================
+    # 10. AI-to-AI Multi-Agent (Tests 221-235)
+    # ==========================================================================
+    "ai_multi_agent": {
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L13_DECISION_BOUNDARY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "federated_learning": {
+        SCBELayer.L5_QUANTUM_COHERENCE,
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L9_CRYPTO_INTEGRITY,
+    },
+    "robotic_surgery": {
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+    },
+    "swarm_coordination": {
+        SCBELayer.L6_SESSION_KEY,
+        SCBELayer.L7_TRAJECTORY_SMOOTH,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+    },
+
+    # ==========================================================================
+    # 11. Zero-Trust Defense-in-Depth (Tests 236-250)
+    # ==========================================================================
     "zero_trust": {
         SCBELayer.L1_AXIOM_VERIFIER,
         SCBELayer.L2_PHASE_VERIFIER,
@@ -289,6 +469,19 @@ TEST_CATEGORY_MAPPING: Dict[str, Set[SCBELayer]] = {
         SCBELayer.L10_TEMPORAL_CONSISTENCY,
         SCBELayer.L11_MANIFOLD_CURVATURE,
         SCBELayer.L12_ENERGY_CONSERVATION,
+        SCBELayer.L13_DECISION_BOUNDARY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "microsegmentation": {
+        SCBELayer.L8_BOUNDARY_PROXIMITY,
+        SCBELayer.L13_DECISION_BOUNDARY,
+    },
+    "continuous_verification": {
+        SCBELayer.L1_AXIOM_VERIFIER,
+        SCBELayer.L10_TEMPORAL_CONSISTENCY,
+        SCBELayer.L14_GOVERNANCE_DECISION,
+    },
+    "least_privilege": {
         SCBELayer.L13_DECISION_BOUNDARY,
         SCBELayer.L14_GOVERNANCE_DECISION,
     },
@@ -420,49 +613,206 @@ def get_layer_for_test(
 INDUSTRY_TEST_MAPPINGS: Dict[str, LayerMapping] = {}
 
 def _build_industry_mappings():
-    """Build mappings for the industry-grade test suite."""
+    """Build mappings for the industry-grade test suite (150 tests: 101-250)."""
     global INDUSTRY_TEST_MAPPINGS
 
-    # Self-Healing Tests (101-110)
-    for i in range(101, 111):
+    # ==========================================================================
+    # 1. Self-Healing Workflow (Tests 101-110)
+    # ==========================================================================
+    self_healing_cats = [
+        "self_healing", "circuit_breaker", "retry_logic", "exponential_backoff",
+        "health_metrics", "self_healing", "circuit_breaker", "retry_logic",
+        "exponential_backoff", "health_metrics"
+    ]
+    for i, cat in enumerate(self_healing_cats, start=101):
         INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
-            test_name=f"Self-Healing Test {i}",
+            test_name=f"Self-Healing: {cat.replace('_', ' ').title()}",
             test_id=f"test_{i}",
-            category="self_healing",
+            category=cat,
             standards={ComplianceStandard.ISO_27001, ComplianceStandard.SOC2_TYPE2},
         )
 
-    # Medical AI-to-AI Tests (111-125)
-    for i in range(111, 126):
+    # ==========================================================================
+    # 2. Medical AI-to-AI Communication (Tests 111-125) - HIPAA
+    # ==========================================================================
+    medical_cats = [
+        "medical_phi", "medical_phi", "medical_phi", "patient_id_hashing",
+        "patient_id_hashing", "medical_audit", "medical_audit", "multi_ai_chain",
+        "multi_ai_chain", "medical_phi", "medical_phi", "patient_id_hashing",
+        "medical_audit", "multi_ai_chain", "medical_phi"
+    ]
+    for i, cat in enumerate(medical_cats, start=111):
         INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
-            test_name=f"Medical AI Test {i}",
+            test_name=f"Medical AI: {cat.replace('_', ' ').title()}",
             test_id=f"test_{i}",
-            category="medical_phi",
+            category=cat,
             standards={ComplianceStandard.HIPAA, ComplianceStandard.HITECH},
         )
 
-    # Military-Grade Tests (126-140)
-    for i in range(126, 141):
+    # ==========================================================================
+    # 3. Military-Grade Security (Tests 126-140) - NIST 800-53 / FIPS 140-3
+    # ==========================================================================
+    military_cats = [
+        "military_classification", "military_classification", "military_key_rotation",
+        "classification_levels", "nist_controls", "military_classification",
+        "military_key_rotation", "classification_levels", "nist_controls",
+        "military_classification", "military_key_rotation", "classification_levels",
+        "nist_controls", "military_classification", "nist_controls"
+    ]
+    for i, cat in enumerate(military_cats, start=126):
         INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
-            test_name=f"Military-Grade Test {i}",
+            test_name=f"Military-Grade: {cat.replace('_', ' ').title()}",
             test_id=f"test_{i}",
-            category="military_classification",
+            category=cat,
             standards={ComplianceStandard.NIST_800_53, ComplianceStandard.FIPS_140_3},
         )
 
-    # Adversarial Tests (141-155)
-    categories = [
+    # ==========================================================================
+    # 4. Adversarial Attack Resistance (Tests 141-155)
+    # ==========================================================================
+    adversarial_cats = [
         "replay_attack", "bit_flip", "timing_attack", "padding_oracle",
-        "chosen_plaintext", "key_extraction", "bit_flip", "timing_attack",
-        "padding_oracle", "chosen_plaintext", "key_extraction", "replay_attack",
-        "bit_flip", "timing_attack", "padding_oracle"
+        "chosen_plaintext", "key_extraction", "injection_attack", "bit_flip",
+        "timing_attack", "padding_oracle", "chosen_plaintext", "key_extraction",
+        "replay_attack", "timing_attack", "injection_attack"
     ]
-    for i, cat in enumerate(categories, start=141):
+    for i, cat in enumerate(adversarial_cats, start=141):
         INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
-            test_name=f"Adversarial Test {i}",
+            test_name=f"Adversarial: {cat.replace('_', ' ').title()}",
             test_id=f"test_{i}",
             category=cat,
             standards={ComplianceStandard.NIST_800_53},
+        )
+
+    # ==========================================================================
+    # 5. Quantum Resistant Crypto (Tests 156-170)
+    # ==========================================================================
+    pqc_cats = [
+        "kyber_kem", "kyber_kem", "dilithium_signature", "dilithium_signature",
+        "hybrid_key_derivation", "hybrid_key_derivation", "pqc_session",
+        "pqc_session", "kyber_kem", "dilithium_signature", "hybrid_key_derivation",
+        "pqc_session", "kyber_kem", "dilithium_signature", "hybrid_key_derivation"
+    ]
+    for i, cat in enumerate(pqc_cats, start=156):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"PQC: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards={ComplianceStandard.NIST_800_53, ComplianceStandard.FIPS_140_3},
+        )
+
+    # ==========================================================================
+    # 6. Chaos Engineering / Fault Injection (Tests 171-185)
+    # ==========================================================================
+    chaos_cats = [
+        "chaos_engineering", "random_failure", "network_partition", "memory_pressure",
+        "chaos_engineering", "random_failure", "network_partition", "memory_pressure",
+        "chaos_engineering", "random_failure", "network_partition", "memory_pressure",
+        "chaos_engineering", "random_failure", "network_partition"
+    ]
+    for i, cat in enumerate(chaos_cats, start=171):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Chaos: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards={ComplianceStandard.ISO_27001, ComplianceStandard.SOC2_TYPE2},
+        )
+
+    # ==========================================================================
+    # 7. Performance & Scalability (Tests 186-195)
+    # ==========================================================================
+    perf_cats = [
+        "performance", "throughput", "latency", "concurrent_load",
+        "performance", "throughput", "latency", "concurrent_load",
+        "performance", "throughput"
+    ]
+    for i, cat in enumerate(perf_cats, start=186):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Performance: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards={ComplianceStandard.SOC2_TYPE2},
+        )
+
+    # ==========================================================================
+    # 8. Compliance Audit (Tests 196-210)
+    # ==========================================================================
+    audit_cats = [
+        "hipaa_audit", "hipaa_audit", "pci_dss_audit", "pci_dss_audit",
+        "sox_audit", "gdpr_audit", "iso27001_audit", "hipaa_audit",
+        "pci_dss_audit", "sox_audit", "gdpr_audit", "iso27001_audit",
+        "compliance_audit", "compliance_audit", "compliance_audit"
+    ]
+    audit_standards = {
+        "hipaa_audit": {ComplianceStandard.HIPAA, ComplianceStandard.HITECH},
+        "pci_dss_audit": {ComplianceStandard.PCI_DSS},
+        "sox_audit": {ComplianceStandard.SOC2_TYPE2},
+        "gdpr_audit": {ComplianceStandard.ISO_27001},
+        "iso27001_audit": {ComplianceStandard.ISO_27001},
+        "compliance_audit": {ComplianceStandard.ISO_27001, ComplianceStandard.SOC2_TYPE2},
+    }
+    for i, cat in enumerate(audit_cats, start=196):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Audit: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards=audit_standards.get(cat, {ComplianceStandard.ISO_27001}),
+        )
+
+    # ==========================================================================
+    # 9. Financial Critical Infrastructure (Tests 211-220) - PCI-DSS
+    # ==========================================================================
+    financial_cats = [
+        "financial_critical", "transaction_integrity", "hsm_simulation",
+        "financial_critical", "transaction_integrity", "hsm_simulation",
+        "financial_critical", "transaction_integrity", "hsm_simulation",
+        "financial_critical"
+    ]
+    for i, cat in enumerate(financial_cats, start=211):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Financial: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards={ComplianceStandard.PCI_DSS, ComplianceStandard.SOC2_TYPE2},
+        )
+
+    # ==========================================================================
+    # 10. AI-to-AI Multi-Agent (Tests 221-235)
+    # ==========================================================================
+    ai_cats = [
+        "ai_multi_agent", "federated_learning", "robotic_surgery", "swarm_coordination",
+        "ai_multi_agent", "federated_learning", "robotic_surgery", "swarm_coordination",
+        "ai_multi_agent", "federated_learning", "robotic_surgery", "swarm_coordination",
+        "ai_multi_agent", "federated_learning", "robotic_surgery"
+    ]
+    for i, cat in enumerate(ai_cats, start=221):
+        stds = {ComplianceStandard.ISO_27001}
+        if cat == "robotic_surgery":
+            stds.add(ComplianceStandard.HIPAA)
+        if cat == "federated_learning":
+            stds.add(ComplianceStandard.NIST_800_53)
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Multi-Agent: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards=stds,
+        )
+
+    # ==========================================================================
+    # 11. Zero-Trust Defense-in-Depth (Tests 236-250)
+    # ==========================================================================
+    zt_cats = [
+        "zero_trust", "microsegmentation", "continuous_verification", "least_privilege",
+        "zero_trust", "microsegmentation", "continuous_verification", "least_privilege",
+        "zero_trust", "microsegmentation", "continuous_verification", "least_privilege",
+        "zero_trust", "microsegmentation", "zero_trust"
+    ]
+    for i, cat in enumerate(zt_cats, start=236):
+        INDUSTRY_TEST_MAPPINGS[f"test_{i}"] = get_layer_for_test(
+            test_name=f"Zero-Trust: {cat.replace('_', ' ').title()}",
+            test_id=f"test_{i}",
+            category=cat,
+            standards={ComplianceStandard.NIST_800_53, ComplianceStandard.ISO_27001},
         )
 
 _build_industry_mappings()
