@@ -116,6 +116,28 @@ SECTION_TONGUES = {
     'veil': 'um',     # Alias for redact
 }
 
+# Section aliases for user-friendly input
+SECTION_ALIASES = {
+    'aad/header': 'aad',
+    'aad': 'aad',
+    'header': 'aad',
+    'metadata': 'aad',
+    'salt': 'salt',
+    'nonce': 'nonce',
+    'ciphertext': 'ct',
+    'ct': 'ct',
+    'auth tag': 'tag',
+    'authtag': 'tag',
+    'auth': 'tag',
+    'tag': 'tag',
+    'redaction': 'redact',
+    'redact': 'redact',
+    'veil': 'redact',
+}
+
+# Apostrophe variants to normalize (curly quotes, primes, etc.)
+APOSTROPHE_VARIANTS = {"'", "'", "‛", "′", "‵", "`", "´"}
+
 
 # =============================================================================
 # SACRED TONGUE ENUM (For type-safe domain mappings)
@@ -148,6 +170,33 @@ def get_tongue_for_domain(domain: str) -> SacredTongue:
     if domain not in DOMAIN_TONGUE_MAP:
         raise ValueError(f"Unknown domain: {domain}. Valid: {list(DOMAIN_TONGUE_MAP.keys())}")
     return DOMAIN_TONGUE_MAP[domain]
+
+
+def normalize_apostrophe(token: str) -> str:
+    """Normalize curly/fancy apostrophes to ASCII apostrophe."""
+    result = token
+    for variant in APOSTROPHE_VARIANTS:
+        result = result.replace(variant, "'")
+    return result
+
+
+def resolve_section(section: str, *, allow_unknown: bool = False) -> str:
+    """
+    Resolve section aliases to canonical section names.
+
+    Args:
+        section: User-provided section name (e.g., "ciphertext", "auth tag")
+        allow_unknown: If True, return unknown sections as-is
+
+    Returns:
+        Canonical section name (e.g., "ct", "tag")
+    """
+    normalized = section.strip().lower()
+    if normalized in SECTION_ALIASES:
+        return SECTION_ALIASES[normalized]
+    if allow_unknown:
+        return normalized
+    raise ValueError(f"Unknown section: {section!r}. Valid: {list(set(SECTION_ALIASES.values()))}")
 
 
 # =============================================================================
@@ -195,6 +244,12 @@ class SacredTongueTokenizer:
         """Build forward and reverse lookup tables for a tongue."""
         spec = TONGUES[tongue_code]
 
+        # Validate 16x16 structure
+        if len(spec.prefixes) != 16:
+            raise ValueError(f"Tongue {tongue_code} must have 16 prefixes; got {len(spec.prefixes)}")
+        if len(spec.suffixes) != 16:
+            raise ValueError(f"Tongue {tongue_code} must have 16 suffixes; got {len(spec.suffixes)}")
+
         # Forward: byte → token
         byte_to_token: List[str] = []
         for b in range(256):
@@ -202,6 +257,17 @@ class SacredTongueTokenizer:
             si = b & 0x0F      # Low nibble (0-15)
             token = f"{spec.prefixes[pi]}'{spec.suffixes[si]}"
             byte_to_token.append(token)
+
+        # Validate uniqueness (256 unique tokens required)
+        if len(set(byte_to_token)) != 256:
+            seen: Dict[str, int] = {}
+            dups: List[str] = []
+            for i, t in enumerate(byte_to_token):
+                if t in seen:
+                    dups.append(t)
+                else:
+                    seen[t] = i
+            raise ValueError(f"Tongue {tongue_code} has duplicate tokens: {dups[:5]}")
 
         # Reverse: token → byte
         token_to_byte: Dict[str, int] = {
@@ -241,13 +307,29 @@ class SacredTongueTokenizer:
         tables = self._get_tables(tongue_code)
         return tables['byte_to_token'][b]
 
-    def decode_token(self, token: str, tongue: Optional[SacredTongue] = None) -> int:
-        """Decode a single token to a byte."""
+    def decode_token(self, token: str, tongue: Optional[SacredTongue] = None, *, strict: bool = True) -> int:
+        """
+        Decode a single token to a byte.
+
+        Args:
+            token: Token string (e.g., "vel'an")
+            tongue: Sacred tongue to use
+            strict: If False, normalize apostrophes and strip whitespace
+
+        Returns:
+            Byte value (0-255)
+        """
         tongue_code = self._get_tongue_code(tongue)
         tables = self._get_tables(tongue_code)
-        if token not in tables['token_to_byte']:
-            raise ValueError(f"Unknown token: {token}")
-        return tables['token_to_byte'][token]
+
+        # Normalize apostrophes (handle curly quotes from copy/paste)
+        normalized = normalize_apostrophe(token)
+        if not strict:
+            normalized = normalized.strip().lower()
+
+        if normalized not in tables['token_to_byte']:
+            raise ValueError(f"Unknown token: {token!r} (normalized: {normalized!r})")
+        return tables['token_to_byte'][normalized]
 
     def get_token_for_byte(self, byte_val: int, tongue: SacredTongue) -> 'Token':
         """Get a Token object for a byte value in a specific tongue."""
@@ -367,6 +449,111 @@ class SacredTongueTokenizer:
         if self._tongue_code is None:
             self._tongue_code = 'ko'  # Default
         return self.decode_from_string(spelltext, separator=" ")
+
+    def encode_ss1_multiline(
+        self,
+        fields: Dict[str, bytes],
+        *,
+        sep: str = " ",
+        line_sep: str = "\n",
+    ) -> str:
+        """
+        Encode multiple SS1 sections into a multi-line format.
+
+        Format:
+            aad: <tokens...>
+            salt: <tokens...>
+            nonce: <tokens...>
+            ct: <tokens...>
+            tag: <tokens...>
+
+        Args:
+            fields: Dict mapping section names to bytes
+            sep: Token separator within a line
+            line_sep: Line separator
+
+        Returns:
+            Multi-line encoded string
+        """
+        canonical_order = ("aad", "salt", "nonce", "ct", "tag", "redact")
+        lines: List[str] = []
+
+        for sec in canonical_order:
+            if sec in fields:
+                tongue_code = SECTION_TONGUES.get(sec, 'ca')
+                tables = self._get_tables(tongue_code)
+                tokens = [tables['byte_to_token'][b] for b in fields[sec]]
+                lines.append(f"{sec}: {tongue_code}:{sep.join(tokens)}")
+
+        return line_sep.join(lines)
+
+    def decode_ss1_multiline(
+        self,
+        ss1_text: str,
+        *,
+        strict: bool = True,
+    ) -> Dict[str, bytes]:
+        """
+        Decode the multi-line format produced by encode_ss1_multiline().
+
+        Accepts lines of the form:
+            <section>: <tongue_code>:<tokens...>
+            or
+            <section>: <tokens...>
+
+        Args:
+            ss1_text: Multi-line encoded string
+            strict: If False, be lenient with apostrophe variants
+
+        Returns:
+            Dict mapping section names to decoded bytes
+        """
+        out: Dict[str, bytes] = {}
+
+        for line in ss1_text.splitlines():
+            line = line.strip()
+            if not line or ':' not in line:
+                continue
+
+            # Split section from content
+            colon_idx = line.index(':')
+            sec = line[:colon_idx].strip().lower()
+            content = line[colon_idx + 1:].strip()
+
+            # Resolve section alias
+            try:
+                sec = resolve_section(sec, allow_unknown=True)
+            except ValueError:
+                continue
+
+            # Get tongue for this section
+            tongue_code = SECTION_TONGUES.get(sec, 'ca')
+
+            # Strip tongue prefix if present
+            if ':' in content and content.split(':')[0] in TONGUES:
+                tongue_code, content = content.split(':', 1)
+
+            tables = self._get_tables(tongue_code)
+            result = []
+
+            for token in content.split():
+                if not token:
+                    continue
+                # Strip any remaining tongue prefix
+                if ':' in token:
+                    _, token = token.split(':', 1)
+                # Normalize apostrophe
+                token = normalize_apostrophe(token)
+                if not strict:
+                    token = token.strip().lower()
+                if token in tables['token_to_byte']:
+                    result.append(tables['token_to_byte'][token])
+                else:
+                    raise ValueError(f"Unknown token in section {sec}: {token!r}")
+
+            out[sec] = bytes(result)
+
+        return out
 
 
 # Compatibility alias
