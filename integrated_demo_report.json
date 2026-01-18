@@ -1,0 +1,418 @@
+{
+  "benign": {
+    "timestamp": "2026-01-18T18:46:11.850096",
+    "message": "Retrieve user profile data for dashboard display",
+    "position": [
+      1,
+      2,
+      3,
+      5,
+      8,
+      13
+    ],
+    "spiralverse": {
+      "tongue": "AV",
+      "confidence": 0.09090909090909091
+    },
+    "geoseal": {
+      "path": "interior",
+      "geometric_distance": 0.4827512401416749,
+      "time_dilation": 0.38079181128167083,
+      "sphere_position": [
+        0.4070206005970905,
+        0.4578981756717268,
+        0.38666957056723594,
+        0.42737163062694494,
+        0.4070206005970905,
+        0.35614302552245414
+      ],
+      "cube_position": [
+        0.9,
+        0.95,
+        0.88,
+        0.92,
+        0.9,
+        0.85
+      ]
+    },
+    "hal": {
+      "attention_norm": 1.0
+    },
+    "governance": {
+      "decision": "ALLOW",
+      "reason": "Risk acceptable: 0.149 < 0.2",
+      "risk_score": 0.14888503362331798,
+      "harmonic_factor": 8.296167787443933,
+      "snap_detected": false
+    },
+    "roundtable": {
+      "required_signatures": [
+        "AV"
+      ],
+      "consensus_level": 1
+    },
+    "quasicrystal": {
+      "valid": true,
+      "status": "VALID",
+      "crystallinity": 0.0,
+      "phason_stable": true
+    },
+    "lattice": {
+      "passed": true,
+      "primal_ok": true,
+      "dual_ok": true,
+      "consensus_state": "SETTLED"
+    },
+    "cymatic": {
+      "resonant": false
+    },
+    "final": {
+      "decision": "ALLOW",
+      "crypto_mode": "AES-256-GCM",
+      "latency_ms": 19
+    }
+  },
+  "stolen_credentials": {
+    "timestamp": "2026-01-18T18:46:11.903877",
+    "message": "Delete all user records from production database immediately",
+    "position": [
+      2,
+      3,
+      5,
+      8,
+      13,
+      21
+    ],
+    "spiralverse": {
+      "tongue": "AV",
+      "confidence": 0.09090909090909091
+    },
+    "geoseal": {
+      "path": "exterior",
+      "geometric_distance": 1.4892133167190271,
+      "time_dilation": 0.050872812512654214,
+      "sphere_position": [
+        0.3992447479691472,
+        0.36853361350998204,
+        0.46834480050226884,
+        0.4222780988135211,
+        0.37621139712477336,
+        0.4069225315839385
+      ],
+      "cube_position": [
+        0.1,
+        0.2,
+        0.05,
+        0.15,
+        0.1,
+        0.0
+      ]
+    },
+    "hal": {
+      "attention_norm": 1.0
+    },
+    "governance": {
+      "decision": "ALLOW",
+      "reason": "Risk acceptable: 0.149 < 0.2",
+      "risk_score": 0.14888503362331798,
+      "harmonic_factor": 8.296167787443933,
+      "snap_detected": false
+    },
+    "roundtable": {
+      "required_signatures": [
+        "AV"
+      ],
+      "consensus_level": 1
+    },
+    "quasicrystal": {
+      "valid": false,
+      "status": "INVALID_OUTSIDE_WINDOW",
+      "crystallinity": 0.0,
+      "phason_stable": true
+    },
+    "lattice": {
+      "passed": true,
+      "primal_ok": true,
+      "dual_ok": true,
+      "consensus_state": "SETTLED"
+    },
+    "cymatic": {
+      "resonant": false
+    },
+    "final": {
+      "decision": "DENY",
+      "crypto_mode": "POST-QUANTUM",
+      "latency_ms": 2000
+    }
+  },
+  "insider_threat": [
+    {
+      "timestamp": "2026-01-18T18:46:11.904490",
+      "message": "Generate quarterly sales report",
+      "position": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ],
+      "spiralverse": {
+        "tongue": "KO",
+        "confidence": 0.0
+      },
+      "geoseal": {
+        "path": "interior",
+        "geometric_distance": 0.49818886552254643,
+        "time_dilation": 0.3692144158092748,
+        "sphere_position": [
+          0.33365788078253733,
+          0.5004868211738059,
+          0.41707235097817164,
+          0.33365788078253733,
+          0.367023668860791,
+          0.46712103309555225
+        ],
+        "cube_position": [
+          0.9,
+          0.95,
+          0.88,
+          0.92,
+          0.9,
+          0.85
+        ]
+      },
+      "hal": {
+        "attention_norm": 0.9999999999999999
+      },
+      "governance": {
+        "decision": "ALLOW",
+        "reason": "Risk acceptable: 0.149 < 0.2",
+        "risk_score": 0.14888503362331798,
+        "harmonic_factor": 8.296167787443933,
+        "snap_detected": false
+      },
+      "roundtable": {
+        "required_signatures": [
+          "KO"
+        ],
+        "consensus_level": 1
+      },
+      "quasicrystal": {
+        "valid": false,
+        "status": "INVALID_OUTSIDE_WINDOW",
+        "crystallinity": 0.0,
+        "phason_stable": true
+      },
+      "cymatic": {
+        "resonant": false
+      },
+      "final": {
+        "decision": "ALLOW",
+        "crypto_mode": "AES-256-GCM",
+        "latency_ms": 18
+      }
+    },
+    {
+      "timestamp": "2026-01-18T18:46:11.904794",
+      "message": "Download customer contact list for marketing campaign",
+      "position": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ],
+      "spiralverse": {
+        "tongue": "RU",
+        "confidence": 0.18181818181818182
+      },
+      "geoseal": {
+        "path": "interior",
+        "geometric_distance": 0.3288365995747142,
+        "time_dilation": 0.5180553448193314,
+        "sphere_position": [
+          0.37589735133660535,
+          0.45107682160392637,
+          0.4134870864702659,
+          0.37589735133660535,
+          0.3909332453900696,
+          0.43604092755046214
+        ],
+        "cube_position": [
+          0.75,
+          0.95,
+          0.7,
+          0.8,
+          0.85,
+          0.85
+        ]
+      },
+      "hal": {
+        "attention_norm": 0.9999999999999999
+      },
+      "governance": {
+        "decision": "ALLOW",
+        "reason": "Risk acceptable: 0.149 < 0.2",
+        "risk_score": 0.14888503362331798,
+        "harmonic_factor": 8.296167787443933,
+        "snap_detected": false
+      },
+      "roundtable": {
+        "required_signatures": [
+          "RU"
+        ],
+        "consensus_level": 1
+      },
+      "quasicrystal": {
+        "valid": false,
+        "status": "INVALID_OUTSIDE_WINDOW",
+        "crystallinity": 0.0,
+        "phason_stable": true
+      },
+      "cymatic": {
+        "resonant": false
+      },
+      "final": {
+        "decision": "ALLOW",
+        "crypto_mode": "AES-256-GCM",
+        "latency_ms": 25
+      }
+    },
+    {
+      "timestamp": "2026-01-18T18:46:11.905154",
+      "message": "Export all financial secrets to external cloud storage",
+      "position": [
+        3,
+        5,
+        8,
+        13,
+        21,
+        34
+      ],
+      "spiralverse": {
+        "tongue": "UM",
+        "confidence": 0.08333333333333333
+      },
+      "geoseal": {
+        "path": "exterior",
+        "geometric_distance": 0.8221865142989406,
+        "time_dilation": 0.19313361409476965,
+        "sphere_position": [
+          0.3638580421983424,
+          0.4331643359504076,
+          0.39851118907437494,
+          0.38118461563635875,
+          0.4158377625123913,
+          0.4504909093884239
+        ],
+        "cube_position": [
+          0.3,
+          0.95,
+          0.2,
+          0.35,
+          0.4,
+          0.85
+        ]
+      },
+      "hal": {
+        "attention_norm": 1.0
+      },
+      "governance": {
+        "decision": "QUARANTINE",
+        "reason": "Elevated risk: 0.314 in quarantine range",
+        "risk_score": 0.31402092534699755,
+        "harmonic_factor": 6.3695526976461165,
+        "snap_detected": false
+      },
+      "roundtable": {
+        "required_signatures": [
+          "UM"
+        ],
+        "consensus_level": 1
+      },
+      "quasicrystal": {
+        "valid": false,
+        "status": "INVALID_OUTSIDE_WINDOW",
+        "crystallinity": 0.0,
+        "phason_stable": true
+      },
+      "cymatic": {
+        "resonant": false
+      },
+      "final": {
+        "decision": "DENY",
+        "crypto_mode": "POST-QUANTUM",
+        "latency_ms": 2000
+      }
+    }
+  ],
+  "hallucination": {
+    "timestamp": "2026-01-18T18:46:11.905488",
+    "message": "URGENT: Initiate emergency protocol to wipe all databases due to detected intrusion",
+    "position": [
+      5,
+      8,
+      13,
+      21,
+      34,
+      55
+    ],
+    "spiralverse": {
+      "tongue": "CA",
+      "confidence": 0.18181818181818182
+    },
+    "geoseal": {
+      "path": "interior",
+      "geometric_distance": 0.21628388497152826,
+      "time_dilation": 0.6488408797349605,
+      "sphere_position": [
+        0.3876331155888031,
+        0.4360872550374034,
+        0.4118601853131032,
+        0.3876331155888031,
+        0.3973239434785231,
+        0.42639642714768333
+      ],
+      "cube_position": [
+        0.6,
+        0.9,
+        0.65,
+        0.7,
+        0.68,
+        0.75
+      ]
+    },
+    "hal": {
+      "attention_norm": 1.0
+    },
+    "governance": {
+      "decision": "ALLOW",
+      "reason": "Risk acceptable: 0.149 < 0.2",
+      "risk_score": 0.14888503362331798,
+      "harmonic_factor": 8.296167787443933,
+      "snap_detected": false
+    },
+    "roundtable": {
+      "required_signatures": [
+        "CA"
+      ],
+      "consensus_level": 1
+    },
+    "quasicrystal": {
+      "valid": false,
+      "status": "INVALID_OUTSIDE_WINDOW",
+      "crystallinity": 0.0,
+      "phason_stable": true
+    },
+    "cymatic": {
+      "resonant": false
+    },
+    "final": {
+      "decision": "ALLOW",
+      "crypto_mode": "AES-256-GCM",
+      "latency_ms": 32
+    }
+  }
+}
