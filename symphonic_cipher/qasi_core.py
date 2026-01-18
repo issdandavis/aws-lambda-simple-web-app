@@ -113,9 +113,14 @@ def breathing_transform(u: np.ndarray, b: float, eps_ball: float = 1e-3) -> np.n
 
 
 def realm_distance(u: np.ndarray, centers: np.ndarray) -> float:
-    """d*(u) = min_k dH(u, mu_k)."""
+    """d*(u) = min_k dH(u, mu_k).
+
+    Returns infinity if centers is empty (no realm to measure distance to).
+    """
     u = np.asarray(u, dtype=np.float64)
     centers = np.asarray(centers, dtype=np.float64)
+    if centers.shape[0] == 0:
+        return float('inf')
     dmins = [hyperbolic_distance(u, centers[k]) for k in range(centers.shape[0])]
     return float(min(dmins))
 
