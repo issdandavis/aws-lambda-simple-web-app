@@ -16,7 +16,7 @@
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
 ║  Section: 4 (HAL-Attention Mathematics)                                      ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

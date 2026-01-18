@@ -19,7 +19,7 @@
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
 ║  Section: 8 (Quasicrystal Lattice)                                           ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

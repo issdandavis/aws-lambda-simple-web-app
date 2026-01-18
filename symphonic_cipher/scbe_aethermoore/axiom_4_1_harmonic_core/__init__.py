@@ -13,7 +13,7 @@
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
 ║  Version: 1.0.0                                                              ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

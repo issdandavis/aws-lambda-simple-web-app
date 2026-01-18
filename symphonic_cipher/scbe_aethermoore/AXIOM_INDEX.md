@@ -1,7 +1,7 @@
 # AETHERMOORE Axiom Index
 
 ## Document ID: AETHER-SPEC-2026-001
-## Author: Isaac Davis
+## Author: Issac Davis
 
 ---
 
@@ -208,4 +208,4 @@ from symphonic_cipher.scbe_aethermoore.hal_attention import HALAttentionLayer
 
 ---
 
-*AETHERMOORE Framework - Isaac Davis*
+*AETHERMOORE Framework - Issac Davis*

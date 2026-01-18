@@ -18,7 +18,7 @@
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
 ║  Section: 6 (Cymatic Voxel Storage)                                          ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

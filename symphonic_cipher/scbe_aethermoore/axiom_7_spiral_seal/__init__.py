@@ -23,7 +23,7 @@
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
 ║  Section: 7 (Spiral Seal)                                                    ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

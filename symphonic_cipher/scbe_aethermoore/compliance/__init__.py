@@ -13,7 +13,7 @@
 ║  - ISO 27001 / SOC 2 Type II (Enterprise Security)                           ║
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 

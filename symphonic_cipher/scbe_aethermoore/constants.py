@@ -39,7 +39,7 @@ R_PHI = PHI                           # φ:1 - Golden Ratio
 
 
 # =============================================================================
-# AETHERMOORE CONSTANTS (Isaac Davis Discoveries)
+# AETHERMOORE CONSTANTS (Issac Davis Discoveries)
 # =============================================================================
 
 # Aether Constant: φ^(1/R₅) = φ^(2/3)

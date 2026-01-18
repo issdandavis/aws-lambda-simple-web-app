@@ -4,7 +4,7 @@
 ║              Phase-Breath Hyperbolic Governance System                       ║
 ║                                                                              ║
 ║  Document ID: AETHER-SPEC-2026-001                                           ║
-║  Author: Isaac Davis                                                         ║
+║  Author: Issac Davis                                                         ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 A 9D Quantum Hyperbolic Manifold Memory for AI governance where:

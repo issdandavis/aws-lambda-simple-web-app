@@ -1,7 +1,7 @@
 # SCBE-AETHERMOORE Client Walkthrough
 
 ## Document ID: AETHER-SPEC-2026-001
-## Author: Isaac Davis
+## Author: Issac Davis
 
 ---
 
@@ -350,5 +350,5 @@ python -m pytest tests/ --cov=symphonic_cipher --cov-report=html
 
 ---
 
-*AETHERMOORE Framework - Isaac Davis*
+*AETHERMOORE Framework - Issac Davis*
 *Document ID: AETHER-SPEC-2026-001*
