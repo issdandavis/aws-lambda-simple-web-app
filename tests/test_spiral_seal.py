@@ -649,5 +649,328 @@ class TestPQCIntegration:
             pytest.skip("PQC module not available")
 
 
+# =============================================================================
+# STAGGERED AUTH TESTS
+# =============================================================================
+
+class TestSpiralKeyDerivation:
+    """Test Spiral Key Derivation (SKD) system."""
+
+    def test_derive_tongue_key_unique_per_tongue(self):
+        """Each tongue should produce a unique key from same master."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            derive_tongue_key, TONGUE_SPIRAL_ORDER
+        )
+
+        master_key = os.urandom(32)
+        keys = {}
+
+        for tongue in TONGUE_SPIRAL_ORDER:
+            keys[tongue] = derive_tongue_key(master_key, tongue)
+
+        # All keys should be unique
+        key_set = set(keys.values())
+        assert len(key_set) == 6, "All 6 tongue keys should be unique"
+
+    def test_derive_tongue_key_deterministic(self):
+        """Same inputs should produce same key."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import derive_tongue_key
+
+        master_key = b"test_master_key_32_bytes_long!!!"
+        key1 = derive_tongue_key(master_key, "ko")
+        key2 = derive_tongue_key(master_key, "ko")
+
+        assert key1 == key2
+
+    def test_derive_spiral_key_set(self):
+        """Derive complete key set for all tongues."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            derive_spiral_key_set, TONGUE_SPIRAL_ORDER
+        )
+
+        master_key = os.urandom(32)
+        keys = derive_spiral_key_set(master_key)
+
+        assert len(keys) == 6
+        for tongue in TONGUE_SPIRAL_ORDER:
+            assert tongue in keys
+            assert len(keys[tongue]) == 32
+
+    def test_spiral_key_combine(self):
+        """Combine multiple tongue keys."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            derive_spiral_key_set, spiral_key_combine
+        )
+
+        master_key = os.urandom(32)
+        keys = derive_spiral_key_set(master_key)
+
+        # Combine triad
+        combined = spiral_key_combine(keys, ['ko', 'ru', 'um'])
+        assert len(combined) == 32
+
+        # Different combinations should produce different keys
+        combined2 = spiral_key_combine(keys, ['av', 'ca', 'dr'])
+        assert combined != combined2
+
+
+class TestRefsGrid:
+    """Test 6×6 cross-reference grid."""
+
+    def test_build_refs_grid_ring_pattern(self):
+        """Ring pattern: each tongue refs self + next."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, RefsPattern, TONGUE_SPIRAL_ORDER
+        )
+
+        sections = {
+            'ko': b"nonce data",
+            'ru': b"salt data",
+            'ca': b"ciphertext",
+        }
+
+        refs = build_refs_grid(sections, RefsPattern.RING)
+
+        # Ring pattern: each tongue has 2 refs (self + next)
+        for tongue in TONGUE_SPIRAL_ORDER:
+            assert tongue in refs
+            assert len(refs[tongue]) == 2
+
+    def test_build_refs_grid_full_pattern(self):
+        """Full pattern: each tongue refs all others."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, RefsPattern, TONGUE_SPIRAL_ORDER
+        )
+
+        sections = {'ko': b"test", 'ca': b"data"}
+        refs = build_refs_grid(sections, RefsPattern.FULL)
+
+        # Full pattern: 6×6 = 36 refs total
+        total_refs = sum(len(refs[t]) for t in refs)
+        assert total_refs == 36
+
+    def test_verify_refs_grid_success(self):
+        """Refs grid verification with matching data."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, verify_refs_grid, RefsPattern
+        )
+
+        sections = {'ko': b"nonce", 'ru': b"salt", 'ca': b"ct"}
+        refs = build_refs_grid(sections, RefsPattern.RING)
+
+        valid, failures = verify_refs_grid(sections, refs, RefsPattern.RING)
+        assert valid is True
+        assert len(failures) == 0
+
+    def test_verify_refs_grid_failure(self):
+        """Refs grid verification with tampered data."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, verify_refs_grid, RefsPattern
+        )
+
+        sections = {'ko': b"nonce", 'ru': b"salt"}
+        refs = build_refs_grid(sections, RefsPattern.RING)
+
+        # Tamper with data
+        sections['ko'] = b"TAMPERED"
+
+        valid, failures = verify_refs_grid(sections, refs, RefsPattern.RING)
+        assert valid is False
+        assert len(failures) > 0
+
+
+class TestAuthSidecar:
+    """Test authentication sidecar."""
+
+    def test_auth_sidecar_compute_verify(self):
+        """Compute and verify auth sidecar."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            AuthSidecar, AuthConfig, derive_spiral_key_set, build_refs_grid, RefsPattern
+        )
+
+        master_key = os.urandom(32)
+        keys = derive_spiral_key_set(master_key, b"test")
+
+        payload = b"test payload data"
+        sections = {'ca': payload}
+        refs = build_refs_grid(sections, RefsPattern.RING)
+
+        config = AuthConfig(tongues=('ko', 'ru', 'um'), threshold=2)
+        sidecar = AuthSidecar.compute(payload, keys, config, refs)
+
+        # Verify
+        valid, count, valid_tongues = sidecar.verify(payload, keys, refs)
+        assert valid is True
+        assert count == 3
+        assert set(valid_tongues) == {'ko', 'ru', 'um'}
+
+    def test_auth_sidecar_threshold(self):
+        """Threshold verification with partial keys."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            AuthSidecar, AuthConfig, derive_spiral_key_set, build_refs_grid, RefsPattern
+        )
+
+        master_key = os.urandom(32)
+        keys = derive_spiral_key_set(master_key, b"test")
+
+        payload = b"secret"
+        refs = build_refs_grid({'ca': payload}, RefsPattern.RING)
+
+        config = AuthConfig(tongues=('ko', 'ru', 'um'), threshold=2)
+        sidecar = AuthSidecar.compute(payload, keys, config, refs)
+
+        # Corrupt one key
+        bad_keys = keys.copy()
+        bad_keys['ko'] = os.urandom(32)
+
+        # Should still pass with 2/3
+        valid, count, valid_tongues = sidecar.verify(payload, bad_keys, refs)
+        assert valid is True
+        assert count == 2
+        assert 'ko' not in valid_tongues
+
+    def test_auth_sidecar_to_tokens(self):
+        """Render sidecar as Draumric tokens."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            AuthSidecar, AuthConfig, derive_spiral_key_set, build_refs_grid, RefsPattern
+        )
+
+        master_key = os.urandom(32)
+        keys = derive_spiral_key_set(master_key)
+
+        config = AuthConfig(tongues=('ko', 'ru', 'um'), threshold=2)
+        refs = build_refs_grid({'ca': b"test"}, RefsPattern.RING)
+        sidecar = AuthSidecar.compute(b"test", keys, config, refs)
+
+        tokens = sidecar.to_tokens()
+        assert "ko:" in tokens
+        assert "ru:" in tokens
+        assert "um:" in tokens
+        assert "dr:" in tokens  # Draumric encoding
+
+
+class TestStaggeredAuthPacket:
+    """Test complete staggered auth packet."""
+
+    def test_pack_verify_roundtrip(self):
+        """Pack and verify staggered auth packet."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            StaggeredAuthPacket, SSConfig, AuthConfig, RefsPattern
+        )
+
+        master_key = os.urandom(32)
+        sections = {'ca': b"ciphertext data", 'ko': b"nonce"}
+
+        config = SSConfig(
+            refs=True,
+            refs_pattern=RefsPattern.RING,
+            auth=AuthConfig(tongues=('ko', 'ru', 'um'), threshold=2)
+        )
+
+        packet = StaggeredAuthPacket.pack(sections, master_key, config)
+
+        # Verify
+        valid, details = packet.verify(master_key)
+        assert valid is True
+        assert details["stage1_lengths"] is True
+        assert details["stage2_checksum"] is True
+        assert details["stage3_refs"] is True
+        assert details["stage3_auth"]["valid"] is True
+
+    def test_pack_tamper_detection(self):
+        """Detect tampering in staggered auth packet."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            StaggeredAuthPacket, SSConfig, AuthConfig, RefsPattern
+        )
+
+        master_key = os.urandom(32)
+        sections = {'ca': b"original data"}
+
+        config = SSConfig(
+            refs=True,
+            auth=AuthConfig(tongues=('ko', 'ru', 'um'), threshold=2)
+        )
+
+        packet = StaggeredAuthPacket.pack(sections, master_key, config)
+
+        # Tamper with sections
+        packet.sections['ca'] = b"TAMPERED"
+
+        valid, details = packet.verify(master_key)
+        assert valid is False
+
+    def test_packet_to_tokens(self):
+        """Render packet as spell-text."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            StaggeredAuthPacket, SSConfig, AuthConfig
+        )
+
+        master_key = os.urandom(32)
+        sections = {'ca': b"test"}
+
+        config = SSConfig(auth=AuthConfig())
+        packet = StaggeredAuthPacket.pack(sections, master_key, config)
+
+        tokens = packet.to_tokens()
+        assert "[ca]" in tokens
+        assert "[checksum]" in tokens
+        assert "[auth]" in tokens
+
+    def test_quick_staggered_pack_verify(self):
+        """Quick pack and verify functions."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            quick_staggered_pack, quick_staggered_verify
+        )
+
+        master_key = os.urandom(32)
+        data = b"Hello, Spiral World!"
+
+        packet = quick_staggered_pack(data, master_key)
+        assert quick_staggered_verify(packet, master_key) is True
+
+        # Wrong key should fail
+        assert quick_staggered_verify(packet, os.urandom(32)) is False
+
+
+class TestRefsPatternVariations:
+    """Test different refs pattern configurations."""
+
+    def test_ring_pattern_refs_count(self):
+        """Ring pattern: 6 tongues × 2 refs each = 12 total."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, RefsPattern
+        )
+
+        sections = {'ko': b"a", 'av': b"b", 'ru': b"c", 'ca': b"d", 'um': b"e", 'dr': b"f"}
+        refs = build_refs_grid(sections, RefsPattern.RING)
+
+        total = sum(len(refs[t]) for t in refs)
+        assert total == 12
+
+    def test_two_pattern_refs_count(self):
+        """Two pattern: 6 tongues × 3 refs each = 18 total."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, RefsPattern
+        )
+
+        sections = {'ko': b"a", 'av': b"b", 'ru': b"c", 'ca': b"d", 'um': b"e", 'dr': b"f"}
+        refs = build_refs_grid(sections, RefsPattern.TWO)
+
+        total = sum(len(refs[t]) for t in refs)
+        assert total == 18
+
+    def test_full_pattern_refs_count(self):
+        """Full pattern: 6 tongues × 6 refs each = 36 total."""
+        from symphonic_cipher.scbe_aethermoore.spiral_seal.sacred_tongues import (
+            build_refs_grid, RefsPattern
+        )
+
+        sections = {'ko': b"a"}
+        refs = build_refs_grid(sections, RefsPattern.FULL)
+
+        total = sum(len(refs[t]) for t in refs)
+        assert total == 36
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

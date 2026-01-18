@@ -15,9 +15,11 @@ Section tongues (canonical mapping):
 - redaction → Umbroth (um) - veil
 """
 
-from typing import Dict, List, Tuple, Optional
-from dataclasses import dataclass
+from typing import Dict, List, Tuple, Optional, Set
+from dataclasses import dataclass, field
 from enum import Enum
+import hashlib
+import hmac
 
 
 @dataclass(frozen=True)
@@ -686,3 +688,534 @@ SPIRALSCRIPT_KEYWORDS = {
         "forge": "compile (build artifact)",
     },
 }
+
+
+# =============================================================================
+# SPIRAL KEY DERIVATION (SKD)
+# =============================================================================
+# Tongue-based key derivation where each tongue contributes to the spiral
+
+# Tongue order for spiral (matches the hexagonal arrangement)
+TONGUE_SPIRAL_ORDER: Tuple[str, ...] = ('ko', 'av', 'ru', 'ca', 'um', 'dr')
+
+
+def derive_tongue_key(master_key: bytes, tongue_code: str, context: bytes = b"") -> bytes:
+    """
+    Derive a per-tongue key from master key using HKDF-like expansion.
+
+    The tongue's vocabulary signature is mixed into the derivation,
+    creating a unique key that's bound to that specific lexicon.
+
+    Args:
+        master_key: 32-byte master key
+        tongue_code: Sacred Tongue code (ko, av, ru, ca, um, dr)
+        context: Optional context for domain separation
+
+    Returns:
+        32-byte derived key for this tongue
+    """
+    if tongue_code not in TONGUES:
+        raise ValueError(f"Unknown tongue: {tongue_code}")
+
+    # Get tongue signature (hash of vocabulary)
+    tongue_sig = get_tongue_signature(tongue_code)
+
+    # HKDF-expand: PRK = HMAC(master_key, tongue_sig)
+    prk = hmac.new(master_key, tongue_sig, hashlib.sha256).digest()
+
+    # Expand with context
+    info = tongue_code.encode() + b"|" + context
+    okm = hmac.new(prk, info + b"\x01", hashlib.sha256).digest()
+
+    return okm
+
+
+def derive_spiral_key_set(master_key: bytes, context: bytes = b"") -> Dict[str, bytes]:
+    """
+    Derive a complete set of per-tongue keys from master key.
+
+    Returns 6 keys, one for each Sacred Tongue, all cryptographically
+    linked through the spiral derivation.
+
+    Args:
+        master_key: 32-byte master key
+        context: Optional context for domain separation
+
+    Returns:
+        Dict mapping tongue codes to 32-byte derived keys
+    """
+    keys = {}
+    for tongue_code in TONGUE_SPIRAL_ORDER:
+        keys[tongue_code] = derive_tongue_key(master_key, tongue_code, context)
+    return keys
+
+
+def spiral_key_combine(keys: Dict[str, bytes], tongues: List[str]) -> bytes:
+    """
+    Combine multiple tongue keys into a single spiral key.
+
+    Uses XOR folding followed by a final hash to maintain
+    256-bit security even when combining fewer than 6 tongues.
+
+    Args:
+        keys: Dict of tongue_code -> key
+        tongues: List of tongue codes to combine
+
+    Returns:
+        32-byte combined key
+    """
+    if not tongues:
+        raise ValueError("Must specify at least one tongue")
+
+    # Start with first key
+    combined = bytearray(keys[tongues[0]])
+
+    # XOR fold remaining keys
+    for tongue in tongues[1:]:
+        key = keys[tongue]
+        for i in range(32):
+            combined[i] ^= key[i]
+
+    # Final hash to ensure uniform distribution
+    return hashlib.sha256(bytes(combined)).digest()
+
+
+# =============================================================================
+# STAGGERED AUTH CONFIG
+# =============================================================================
+
+class RefsPattern(Enum):
+    """Cross-reference patterns for tongue verification."""
+    FULL = "full"    # 6×6 grid: each tongue refs all others
+    RING = "ring"    # Each tongue refs self + next in spiral
+    TWO = "two"      # Each tongue refs self + prev + next
+
+
+# Default triad for authentication
+DEFAULT_TRIAD: Tuple[str, ...] = ('ko', 'ru', 'um')
+DEFAULT_THRESHOLD = 2
+
+
+@dataclass
+class AuthConfig:
+    """Configuration for staggered authentication."""
+    tongues: Tuple[str, ...] = DEFAULT_TRIAD
+    threshold: int = DEFAULT_THRESHOLD
+    refs_pattern: RefsPattern = RefsPattern.RING
+
+    def __post_init__(self):
+        if self.threshold > len(self.tongues):
+            raise ValueError(f"Threshold {self.threshold} > tongue count {len(self.tongues)}")
+        for t in self.tongues:
+            if t not in TONGUES:
+                raise ValueError(f"Unknown tongue in triad: {t}")
+
+
+@dataclass
+class SSConfig:
+    """Configuration for Sacred Tongue tokenization with staggered auth."""
+    refs: bool = True                           # Enable cross-references
+    refs_pattern: RefsPattern = RefsPattern.RING
+    checksum: bool = True                       # Enable per-section checksums
+    auth: Optional[AuthConfig] = None           # Staggered auth config
+    normalize_lengths: bool = True              # Normalize section lengths
+
+
+# =============================================================================
+# 6×6 CROSS-REFERENCE GRID
+# =============================================================================
+
+def build_refs_grid(
+    sections: Dict[str, bytes],
+    pattern: RefsPattern = RefsPattern.RING
+) -> Dict[str, Dict[str, bytes]]:
+    """
+    Build 6×6 cross-reference grid for tongue verification.
+
+    Each tongue computes a reference (hash) of other tongues' data
+    based on the pattern. When refs "line up", data is verified.
+
+    Args:
+        sections: Dict mapping tongue codes to their section data
+        pattern: Which cross-reference pattern to use
+
+    Returns:
+        Nested dict: refs[source_tongue][target_tongue] = reference_hash
+    """
+    refs: Dict[str, Dict[str, bytes]] = {}
+
+    for source in TONGUE_SPIRAL_ORDER:
+        refs[source] = {}
+        source_data = sections.get(source, b"")
+
+        if pattern == RefsPattern.FULL:
+            # Full 6×6: ref all tongues
+            targets = list(TONGUE_SPIRAL_ORDER)
+        elif pattern == RefsPattern.RING:
+            # Ring: self + next in spiral
+            idx = TONGUE_SPIRAL_ORDER.index(source)
+            next_idx = (idx + 1) % 6
+            targets = [source, TONGUE_SPIRAL_ORDER[next_idx]]
+        elif pattern == RefsPattern.TWO:
+            # Two: self + prev + next
+            idx = TONGUE_SPIRAL_ORDER.index(source)
+            prev_idx = (idx - 1) % 6
+            next_idx = (idx + 1) % 6
+            targets = [TONGUE_SPIRAL_ORDER[prev_idx], source, TONGUE_SPIRAL_ORDER[next_idx]]
+        else:
+            targets = [source]
+
+        for target in targets:
+            target_data = sections.get(target, b"")
+            # Reference = HMAC(source_data, target_data)
+            ref = hmac.new(
+                source_data[:32] if source_data else b"\x00" * 32,
+                target_data,
+                hashlib.sha256
+            ).digest()[:8]  # 8 bytes = 64 bits per reference
+            refs[source][target] = ref
+
+    return refs
+
+
+def verify_refs_grid(
+    sections: Dict[str, bytes],
+    refs: Dict[str, Dict[str, bytes]],
+    pattern: RefsPattern = RefsPattern.RING
+) -> Tuple[bool, List[Tuple[str, str]]]:
+    """
+    Verify cross-reference grid matches section data.
+
+    Args:
+        sections: Dict mapping tongue codes to section data
+        refs: Previously computed reference grid
+        pattern: Which pattern was used
+
+    Returns:
+        (all_valid, list_of_failed_refs)
+    """
+    expected = build_refs_grid(sections, pattern)
+    failures = []
+
+    for source in refs:
+        for target in refs[source]:
+            expected_ref = expected.get(source, {}).get(target, b"")
+            actual_ref = refs[source][target]
+            if not hmac.compare_digest(expected_ref, actual_ref):
+                failures.append((source, target))
+
+    return len(failures) == 0, failures
+
+
+# =============================================================================
+# STAGGERED AUTH SIDECAR
+# =============================================================================
+
+@dataclass
+class AuthSidecar:
+    """
+    Authentication sidecar with per-tongue MAC tags.
+
+    The sidecar travels alongside the main packet, containing
+    MACs computed by each tongue in the authentication triad.
+    Verification requires threshold-of-n tongues to agree.
+    """
+    tags: Dict[str, bytes]          # tongue_code -> 32-byte MAC tag
+    tongues: Tuple[str, ...]        # Ordered list of auth tongues
+    threshold: int                  # Minimum tongues required
+    refs_hash: bytes                # Hash of the refs grid
+
+    def to_tokens(self) -> str:
+        """Render sidecar as Draumric tokens (auth tags = structure)."""
+        tokenizer = get_tokenizer('dr')
+        parts = []
+
+        # Encode each tag
+        for tongue in self.tongues:
+            tag = self.tags.get(tongue, b"")
+            tag_tokens = tokenizer.encode_to_string(tag[:16], SacredTongue.DRAUMRIC)
+            parts.append(f"{tongue}:{tag_tokens}")
+
+        return " | ".join(parts)
+
+    @classmethod
+    def compute(
+        cls,
+        payload: bytes,
+        keys: Dict[str, bytes],
+        config: AuthConfig,
+        refs: Dict[str, Dict[str, bytes]]
+    ) -> 'AuthSidecar':
+        """
+        Compute authentication sidecar for payload.
+
+        Each tongue in the triad computes a MAC using its derived key.
+
+        Args:
+            payload: Data to authenticate
+            keys: Per-tongue derived keys
+            config: Auth configuration
+            refs: Cross-reference grid
+
+        Returns:
+            AuthSidecar with computed tags
+        """
+        # Hash the refs grid for binding
+        refs_data = b""
+        for source in sorted(refs.keys()):
+            for target in sorted(refs[source].keys()):
+                refs_data += refs[source][target]
+        refs_hash = hashlib.sha256(refs_data).digest()
+
+        # Compute per-tongue MACs
+        tags = {}
+        for tongue in config.tongues:
+            key = keys.get(tongue, b"\x00" * 32)
+            # MAC = HMAC(key, payload || refs_hash)
+            mac = hmac.new(key, payload + refs_hash, hashlib.sha256).digest()
+            tags[tongue] = mac
+
+        return cls(
+            tags=tags,
+            tongues=config.tongues,
+            threshold=config.threshold,
+            refs_hash=refs_hash
+        )
+
+    def verify(
+        self,
+        payload: bytes,
+        keys: Dict[str, bytes],
+        refs: Dict[str, Dict[str, bytes]]
+    ) -> Tuple[bool, int, List[str]]:
+        """
+        Verify authentication sidecar.
+
+        Returns:
+            (meets_threshold, valid_count, list_of_valid_tongues)
+        """
+        # Recompute refs hash
+        refs_data = b""
+        for source in sorted(refs.keys()):
+            for target in sorted(refs[source].keys()):
+                refs_data += refs[source][target]
+        expected_refs_hash = hashlib.sha256(refs_data).digest()
+
+        if not hmac.compare_digest(self.refs_hash, expected_refs_hash):
+            return False, 0, []
+
+        # Verify each tongue's MAC
+        valid_tongues = []
+        for tongue in self.tongues:
+            key = keys.get(tongue, b"\x00" * 32)
+            expected_mac = hmac.new(key, payload + self.refs_hash, hashlib.sha256).digest()
+            if hmac.compare_digest(self.tags.get(tongue, b""), expected_mac):
+                valid_tongues.append(tongue)
+
+        meets_threshold = len(valid_tongues) >= self.threshold
+        return meets_threshold, len(valid_tongues), valid_tongues
+
+
+# =============================================================================
+# STAGGERED AUTH PACKET
+# =============================================================================
+
+@dataclass
+class StaggeredAuthPacket:
+    """
+    Complete packet with three-stage verification:
+    1. Lengths/normalize
+    2. Checksum
+    3. Refs + triad-auth
+    """
+    sections: Dict[str, bytes]       # tongue_code -> section data
+    lengths: Dict[str, int]          # tongue_code -> original length
+    checksum: bytes                  # SHA-256 of all sections
+    refs: Dict[str, Dict[str, bytes]]  # 6×6 cross-reference grid
+    auth: Optional[AuthSidecar]      # Staggered auth sidecar
+    config: SSConfig                 # Configuration used
+
+    @classmethod
+    def pack(
+        cls,
+        sections: Dict[str, bytes],
+        master_key: bytes,
+        config: Optional[SSConfig] = None
+    ) -> 'StaggeredAuthPacket':
+        """
+        Pack sections into a staggered auth packet.
+
+        Three-stage process:
+        1. Record lengths and normalize
+        2. Compute checksum
+        3. Build refs grid and auth sidecar
+
+        Args:
+            sections: Dict mapping tongue codes to data
+            master_key: Master key for auth derivation
+            config: SSConfig (uses defaults if None)
+
+        Returns:
+            Complete StaggeredAuthPacket
+        """
+        config = config or SSConfig()
+
+        # Stage 1: Lengths and normalize
+        lengths = {k: len(v) for k, v in sections.items()}
+
+        # Stage 2: Checksum
+        all_data = b""
+        for tongue in TONGUE_SPIRAL_ORDER:
+            data = sections.get(tongue, b"")
+            all_data += len(data).to_bytes(4, 'big') + data
+        checksum = hashlib.sha256(all_data).digest()
+
+        # Stage 3a: Build refs grid
+        refs = build_refs_grid(sections, config.refs_pattern) if config.refs else {}
+
+        # Stage 3b: Build auth sidecar
+        auth = None
+        if config.auth:
+            keys = derive_spiral_key_set(master_key, b"staggered-auth")
+            auth = AuthSidecar.compute(all_data, keys, config.auth, refs)
+
+        return cls(
+            sections=sections,
+            lengths=lengths,
+            checksum=checksum,
+            refs=refs,
+            auth=auth,
+            config=config
+        )
+
+    def verify(self, master_key: bytes) -> Tuple[bool, Dict[str, any]]:
+        """
+        Verify packet through all three stages.
+
+        Returns:
+            (all_valid, details_dict)
+        """
+        details: Dict[str, any] = {
+            "stage1_lengths": True,
+            "stage2_checksum": False,
+            "stage3_refs": False,
+            "stage3_auth": None,
+        }
+
+        # Stage 1: Verify lengths
+        for tongue, expected_len in self.lengths.items():
+            actual = len(self.sections.get(tongue, b""))
+            if actual != expected_len:
+                details["stage1_lengths"] = False
+                return False, details
+
+        # Stage 2: Verify checksum
+        all_data = b""
+        for tongue in TONGUE_SPIRAL_ORDER:
+            data = self.sections.get(tongue, b"")
+            all_data += len(data).to_bytes(4, 'big') + data
+        expected_checksum = hashlib.sha256(all_data).digest()
+
+        if not hmac.compare_digest(self.checksum, expected_checksum):
+            return False, details
+        details["stage2_checksum"] = True
+
+        # Stage 3a: Verify refs
+        if self.config.refs and self.refs:
+            refs_valid, failures = verify_refs_grid(
+                self.sections, self.refs, self.config.refs_pattern
+            )
+            details["stage3_refs"] = refs_valid
+            details["refs_failures"] = failures
+            if not refs_valid:
+                return False, details
+        else:
+            details["stage3_refs"] = True
+
+        # Stage 3b: Verify auth
+        if self.auth:
+            keys = derive_spiral_key_set(master_key, b"staggered-auth")
+            auth_valid, count, valid_tongues = self.auth.verify(all_data, keys, self.refs)
+            details["stage3_auth"] = {
+                "valid": auth_valid,
+                "count": count,
+                "threshold": self.auth.threshold,
+                "valid_tongues": valid_tongues,
+            }
+            if not auth_valid:
+                return False, details
+        else:
+            details["stage3_auth"] = {"valid": True, "count": 0, "threshold": 0}
+
+        return True, details
+
+    def to_tokens(self) -> str:
+        """Render packet as spell-text with all stages visible."""
+        parts = []
+
+        # Sections in tongue tokens
+        for tongue in TONGUE_SPIRAL_ORDER:
+            data = self.sections.get(tongue, b"")
+            if data:
+                tokens = encode_to_spelltext(data, SECTION_TONGUES.get(tongue, tongue))
+                parts.append(f"[{tongue}] {tokens}")
+
+        # Checksum (Draumric - structure)
+        cs_tokens = encode_to_spelltext(self.checksum[:8], "tag")
+        parts.append(f"[checksum] {cs_tokens}")
+
+        # Auth sidecar
+        if self.auth:
+            parts.append(f"[auth] {self.auth.to_tokens()}")
+
+        return "\n".join(parts)
+
+
+# =============================================================================
+# QUICK FUNCTIONS FOR STAGGERED AUTH
+# =============================================================================
+
+def quick_staggered_pack(
+    data: bytes,
+    master_key: bytes,
+    section: str = "ct",
+    auth_tongues: Tuple[str, ...] = DEFAULT_TRIAD,
+    threshold: int = DEFAULT_THRESHOLD
+) -> StaggeredAuthPacket:
+    """
+    Quick pack with staggered auth enabled.
+
+    Args:
+        data: Data to pack
+        master_key: 32-byte master key
+        section: Which tongue section (default: ct = Cassisivadan)
+        auth_tongues: Triad for authentication
+        threshold: Minimum tongues required
+
+    Returns:
+        StaggeredAuthPacket
+    """
+    tongue_code = SECTION_TONGUES.get(section, 'ca')
+    sections = {tongue_code: data}
+
+    config = SSConfig(
+        refs=True,
+        refs_pattern=RefsPattern.RING,
+        checksum=True,
+        auth=AuthConfig(
+            tongues=auth_tongues,
+            threshold=threshold,
+            refs_pattern=RefsPattern.RING
+        )
+    )
+
+    return StaggeredAuthPacket.pack(sections, master_key, config)
+
+
+def quick_staggered_verify(
+    packet: StaggeredAuthPacket,
+    master_key: bytes
+) -> bool:
+    """Quick verify staggered auth packet."""
+    valid, _ = packet.verify(master_key)
+    return valid
