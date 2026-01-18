@@ -160,6 +160,156 @@ class HarmonicScaleResponse(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════
+# SpiralSeal (Sacred Tongues)
+# ═══════════════════════════════════════════════════════════════
+
+class SealRequest(BaseModel):
+    """Request to seal data with SpiralSeal."""
+    plaintext: str = Field(
+        ...,
+        description="Base64-encoded plaintext to seal"
+    )
+    aad: str = Field(
+        default="",
+        description="Additional authenticated data (context)"
+    )
+    kid: str = Field(
+        default="k01",
+        description="Key identifier"
+    )
+
+
+class SealResponse(BaseModel):
+    """Response from sealing."""
+    sealed_blob: str
+    tongue_breakdown: dict
+    timestamp: float
+
+
+class UnsealRequest(BaseModel):
+    """Request to unseal a SpiralSeal blob."""
+    sealed_blob: str = Field(
+        ...,
+        description="SS1-formatted sealed blob"
+    )
+    aad: Optional[str] = Field(
+        default=None,
+        description="Expected AAD (if None, uses blob's AAD)"
+    )
+
+
+class UnsealResponse(BaseModel):
+    """Response from unsealing."""
+    plaintext: str
+    kid: str
+    aad: str
+    timestamp: float
+
+
+# ═══════════════════════════════════════════════════════════════
+# GeoSeal (Dual-Manifold Authorization)
+# ═══════════════════════════════════════════════════════════════
+
+class GeoSealAuthRequest(BaseModel):
+    """Request for GeoSeal authorization."""
+    theta: float = Field(
+        ...,
+        ge=0.0,
+        le=3.15,
+        description="Polar angle on sphere [0, π]"
+    )
+    phi: float = Field(
+        ...,
+        ge=0.0,
+        le=6.29,
+        description="Azimuthal angle on sphere [0, 2π]"
+    )
+    policy_coords: List[float] = Field(
+        ...,
+        min_length=3,
+        description="Coordinates in policy hypercube [0,1]^m"
+    )
+
+
+class GeoSealAuthResponse(BaseModel):
+    """Response from GeoSeal authorization."""
+    authorized: bool
+    intersection_type: str
+    sphere_cell: int
+    hypercube_cell: int
+    radial_distance: float
+    tau_allowed: float
+    pow_bits: int
+    timestamp: float
+
+
+# ═══════════════════════════════════════════════════════════════
+# Physics Trap
+# ═══════════════════════════════════════════════════════════════
+
+class TrapChallengeResponse(BaseModel):
+    """A physics trap challenge."""
+    trap_id: str
+    trap_type: str
+    equation: str
+    description: str
+    given_values: dict
+    prompt: str
+
+
+class TrapSubmitRequest(BaseModel):
+    """Submit response to physics trap."""
+    trap_id: str = Field(..., description="Challenge ID")
+    answer: float = Field(..., description="Computed answer")
+    corrections: dict = Field(
+        default_factory=dict,
+        description="Values that were corrected"
+    )
+    explanation: str = Field(
+        default="",
+        description="Explanation of corrections"
+    )
+
+
+class TrapVerifyResponse(BaseModel):
+    """Result of trap verification."""
+    passed: bool
+    is_rogue: bool
+    corrections_made: bool
+    answer_correct: bool
+    explanation: str
+
+
+# ═══════════════════════════════════════════════════════════════
+# Swarm Governance
+# ═══════════════════════════════════════════════════════════════
+
+class AgentRegisterRequest(BaseModel):
+    """Register a new agent."""
+    agent_id: str
+    parent_id: Optional[str] = None
+
+
+class AgentStatusResponse(BaseModel):
+    """Agent status."""
+    agent_id: str
+    state: str
+    permission_level: int
+    trust_score: float
+    risk_score: float
+    tasks_completed: int
+    tasks_failed: int
+    value_generated: float
+
+
+class SwarmStatusResponse(BaseModel):
+    """Overall swarm status."""
+    total_agents: int
+    by_state: dict
+    timestamp: float
+
+
+# ═══════════════════════════════════════════════════════════════
 # Health Check
 # ═══════════════════════════════════════════════════════════════
 
