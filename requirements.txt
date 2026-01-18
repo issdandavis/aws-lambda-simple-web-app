@@ -1,9 +1,23 @@
-# Symphonic Cipher Dependencies
+# SCBE-AETHERMOORE Dependencies
+
+# Core Math
 numpy>=1.20.0
 scipy>=1.7.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
 
 # Testing
 pytest>=7.0.0
 
-# Optional: Visualization (for extended demos)
+# Optional: Production server
+gunicorn>=21.0.0
+
+# Optional: Visualization
 # matplotlib>=3.5.0
+
+# Optional: Future PQC (when switching from simulation)
+# pqcrypto>=0.1.0
+# liboqs-python>=0.8.0
