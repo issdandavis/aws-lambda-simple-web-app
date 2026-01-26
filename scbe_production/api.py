@@ -35,11 +35,27 @@ try:
     from .service import SCBEProductionService, AccessRequest as SCBEAccessRequest
     from .config import get_config
     from .logging import get_logger
+    from .fleet import (
+        FleetOrchestrator,
+        FleetScenario,
+        FleetAgent,
+        AgentRole,
+        create_sample_scenario,
+        create_attack_scenario,
+    )
 except ImportError:
     # Running as script
     from service import SCBEProductionService, AccessRequest as SCBEAccessRequest
     from config import get_config
     from logging import get_logger
+    from fleet import (
+        FleetOrchestrator,
+        FleetScenario,
+        FleetAgent,
+        AgentRole,
+        create_sample_scenario,
+        create_attack_scenario,
+    )
 
 # Sacred Tongues
 try:
@@ -75,6 +91,7 @@ app.add_middleware(
 # Service instance
 service = SCBEProductionService()
 logger = get_logger()
+fleet_orchestrator = FleetOrchestrator()
 
 
 # =============================================================================
@@ -366,6 +383,162 @@ async def list_tongues():
             }
             for code, spec in TONGUES.items()
         ]
+    }
+
+
+# =============================================================================
+# Fleet API - v1
+# =============================================================================
+
+class FleetAgentModel(BaseModel):
+    """Agent registration model."""
+    agent_id: str = Field(..., description="Unique agent identifier")
+    role: str = Field(default="worker", description="Role: worker, coordinator, auditor, admin, guest")
+    trust_level: float = Field(default=0.5, ge=0.0, le=1.0, description="Trust level 0-1")
+    position: List[int] = Field(default=[1, 2, 3, 5, 8, 13], description="Fibonacci position")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Optional metadata")
+
+
+class FleetActionModel(BaseModel):
+    """Action model for tasks."""
+    action_type: str = Field(..., description="Action: read, write, delete, admin, query, sync")
+    target: str = Field(..., description="Target resource")
+    payload: Optional[str] = Field(default=None, description="Optional payload")
+    justification: str = Field(default="", description="Justification for the action")
+
+
+class FleetTaskModel(BaseModel):
+    """Task model."""
+    agent_id: str = Field(..., description="Agent performing the task")
+    action: FleetActionModel
+    context: Optional[Dict[str, Any]] = Field(default=None, description="Optional context")
+
+
+class FleetScenarioRequest(BaseModel):
+    """Full fleet scenario request."""
+    scenario_id: Optional[str] = Field(default=None, description="Scenario ID (auto-generated if not provided)")
+    name: str = Field(default="API Scenario", description="Scenario name")
+    description: str = Field(default="", description="Scenario description")
+    agents: List[FleetAgentModel] = Field(..., description="List of agents")
+    tasks: List[FleetTaskModel] = Field(..., description="List of tasks to execute")
+    config: Optional[Dict[str, Any]] = Field(default=None, description="Optional config")
+
+
+class FleetScenarioResponse(BaseModel):
+    """Fleet scenario execution response."""
+    scenario_id: str
+    scenario_name: str
+    total_tasks: int
+    results: List[Dict[str, Any]]
+    summary: Dict[str, Any]
+    started_at: str
+    completed_at: str
+    total_latency_ms: int
+
+
+@app.post("/v1/fleet/run-scenario", response_model=FleetScenarioResponse, tags=["Fleet"])
+async def run_fleet_scenario(request: FleetScenarioRequest):
+    """
+    Run a complete fleet scenario through the SCBE pipeline.
+
+    This is the main "animal eats food" endpoint:
+    - Takes a scenario with agents and tasks
+    - Routes each task through SCBE governance
+    - Returns decisions for each task plus aggregate summary
+
+    Example scenario:
+    ```json
+    {
+        "name": "Quick Test",
+        "agents": [
+            {"agent_id": "alice", "role": "admin", "trust_level": 0.9},
+            {"agent_id": "bob", "role": "worker", "trust_level": 0.6}
+        ],
+        "tasks": [
+            {"agent_id": "alice", "action": {"action_type": "admin", "target": "config"}},
+            {"agent_id": "bob", "action": {"action_type": "read", "target": "data"}}
+        ]
+    }
+    ```
+    """
+    try:
+        # Convert to internal format
+        scenario_dict = {
+            "scenario_id": request.scenario_id,
+            "name": request.name,
+            "description": request.description,
+            "agents": [a.model_dump() for a in request.agents],
+            "tasks": [{"agent_id": t.agent_id, "action": t.action.model_dump(), "context": t.context or {}} for t in request.tasks],
+            "config": request.config or {},
+        }
+
+        scenario = FleetScenario.from_dict(scenario_dict)
+        result = fleet_orchestrator.run_scenario(scenario)
+
+        return FleetScenarioResponse(
+            scenario_id=result.scenario_id,
+            scenario_name=result.scenario_name,
+            total_tasks=result.total_tasks,
+            results=[r.to_dict() for r in result.results],
+            summary=result.summary,
+            started_at=result.started_at,
+            completed_at=result.completed_at,
+            total_latency_ms=result.total_latency_ms,
+        )
+    except Exception as e:
+        logger.error(f"Fleet scenario failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/fleet/scenarios/sample", tags=["Fleet"])
+async def get_sample_scenario():
+    """Get a sample scenario for testing."""
+    scenario = create_sample_scenario()
+    return scenario.to_dict()
+
+
+@app.get("/v1/fleet/scenarios/attack", tags=["Fleet"])
+async def get_attack_scenario():
+    """Get an attack simulation scenario."""
+    scenario = create_attack_scenario()
+    return scenario.to_dict()
+
+
+@app.post("/v1/fleet/register", tags=["Fleet"])
+async def register_fleet_agent(agent: FleetAgentModel):
+    """Register a new agent with the fleet."""
+    try:
+        fleet_agent = FleetAgent(
+            agent_id=agent.agent_id,
+            role=AgentRole(agent.role),
+            trust_level=agent.trust_level,
+            position=tuple(agent.position),
+            metadata=agent.metadata or {},
+        )
+        registered = fleet_orchestrator.register_agent(fleet_agent)
+        return {"status": "registered", "agent": registered.to_dict()}
+    except Exception as e:
+        logger.error(f"Agent registration failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/fleet/agents", tags=["Fleet"])
+async def list_fleet_agents():
+    """List all registered fleet agents."""
+    agents = fleet_orchestrator.list_agents()
+    return {
+        "count": len(agents),
+        "agents": [a.to_dict() for a in agents],
+    }
+
+
+@app.get("/v1/fleet/decisions", tags=["Fleet"])
+async def get_decision_log(limit: int = 100):
+    """Get recent decision log."""
+    decisions = fleet_orchestrator.get_decision_log(limit)
+    return {
+        "count": len(decisions),
+        "decisions": [d.to_dict() for d in decisions],
     }
 
 

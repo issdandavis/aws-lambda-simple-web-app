@@ -54,6 +54,98 @@ Open `demo/index.html` in any browser - no installation required.
 
 ---
 
+## How to Try It (Fleet Demo)
+
+**This is the "press this button" flow** - run a full fleet scenario end-to-end in under a minute.
+
+### 1. Start the Server
+
+```bash
+# Install dependencies
+pip install fastapi uvicorn numpy
+
+# Start the API
+python -m scbe_production.api
+```
+
+Server runs at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
+
+### 2. Run a Fleet Scenario
+
+```bash
+# Send a scenario with 4 agents and 7 tasks
+curl -X POST http://localhost:8000/v1/fleet/run-scenario \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Quick Test",
+    "agents": [
+      {"agent_id": "alice", "role": "admin", "trust_level": 0.9},
+      {"agent_id": "bob", "role": "worker", "trust_level": 0.6},
+      {"agent_id": "mallory", "role": "guest", "trust_level": 0.1}
+    ],
+    "tasks": [
+      {"agent_id": "alice", "action": {"action_type": "admin", "target": "config"}},
+      {"agent_id": "bob", "action": {"action_type": "read", "target": "documents"}},
+      {"agent_id": "bob", "action": {"action_type": "write", "target": "report"}},
+      {"agent_id": "mallory", "action": {"action_type": "delete", "target": "audit-logs"}},
+      {"agent_id": "mallory", "action": {"action_type": "admin", "target": "security"}}
+    ]
+  }'
+```
+
+### 3. What You'll See Back
+
+```json
+{
+  "scenario_name": "Quick Test",
+  "total_tasks": 5,
+  "summary": {
+    "decisions": {"ALLOW": 3, "QUARANTINE": 0, "DENY": 1, "SNAP": 1},
+    "security_posture": "RED",
+    "allowed_rate": 0.6,
+    "avg_risk_score": 0.4123
+  },
+  "results": [
+    {"agent_id": "alice", "action_type": "admin", "decision": "ALLOW", "risk_score": 0.12},
+    {"agent_id": "bob", "action_type": "read", "decision": "ALLOW", "risk_score": 0.08},
+    {"agent_id": "bob", "action_type": "write", "decision": "ALLOW", "risk_score": 0.15},
+    {"agent_id": "mallory", "action_type": "delete", "decision": "SNAP", "risk_score": 0.92},
+    {"agent_id": "mallory", "action_type": "admin", "decision": "DENY", "risk_score": 0.78}
+  ]
+}
+```
+
+**Translation:**
+- Alice (trusted admin) → ALLOWED to do admin tasks
+- Bob (normal worker) → ALLOWED to read/write
+- Mallory (untrusted guest) → BLOCKED from deleting logs and accessing security
+
+### 4. Try the Demo Script
+
+```bash
+# Full demo (starts server, runs scenarios)
+./scripts/fleet_demo.sh
+
+# Quick test (server already running)
+./scripts/fleet_demo.sh quick
+
+# Attack simulation
+./scripts/fleet_demo.sh attack
+```
+
+### Fleet API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/fleet/run-scenario` | POST | Run a fleet scenario |
+| `/v1/fleet/scenarios/sample` | GET | Get sample scenario JSON |
+| `/v1/fleet/scenarios/attack` | GET | Get attack simulation scenario |
+| `/v1/fleet/register` | POST | Register a new agent |
+| `/v1/fleet/agents` | GET | List registered agents |
+| `/v1/fleet/decisions` | GET | Get recent decision log |
+
+---
+
 ## SCBE-AETHERMOORE: Hyperbolic Governance for AI Safety
 
 A 14-layer hyperbolic geometry system where adversarial intent costs exponentially more the further it drifts from safe operation.
