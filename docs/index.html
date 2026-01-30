@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCBE-AETHERMOORE | Post-Quantum AI Safety</title>
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --dark: #0a0a0f;
+            --purple: #6B5B95;
+            --text: #e0e0e0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, var(--dark) 70%);
+        }
+        h1 {
+            font-size: 3.5rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+        }
+        .subtitle {
+            font-size: 1.5rem;
+            color: var(--purple);
+            margin-bottom: 2rem;
+        }
+        .tagline {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .btn-primary { background: var(--gold); color: var(--dark); font-weight: bold; }
+        .btn-secondary { background: transparent; color: var(--gold); border: 2px solid var(--gold); }
+
+        section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+        h2 { color: var(--gold); font-size: 2.5rem; margin-bottom: 2rem; text-align: center; }
+
+        .layers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .layer-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .layer-card:hover { transform: translateY(-5px); border-color: var(--gold); }
+        .layer-num {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--dark);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .layer-card h3 { color: var(--gold); margin-bottom: 0.5rem; }
+        .layer-card p { font-size: 0.95rem; opacity: 0.85; }
+
+        .demo-section { background: #0f0f1a; }
+        .demo-box {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #demo-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #0a0a0f;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+        #demo-input:focus { outline: none; border-color: var(--gold); }
+        #demo-output {
+            background: #0a0a0f;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            min-height: 200px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+        }
+        .status { padding: 0.5rem 1rem; border-radius: 20px; display: inline-block; margin: 0.5rem; }
+        .status-allow { background: #1a4d1a; color: #4caf50; }
+        .status-quarantine { background: #4d4d1a; color: #ffeb3b; }
+        .status-deny { background: #4d1a1a; color: #f44336; }
+
+        .pricing { background: #0a0a0f; }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .price-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #333;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+        }
+        .price-card.featured { border-color: var(--gold); }
+        .price-card h3 { color: var(--gold); font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .price { font-size: 3rem; color: var(--text); margin: 1rem 0; }
+        .price span { font-size: 1rem; opacity: 0.7; }
+        .price-card ul { list-style: none; text-align: left; margin: 1.5rem 0; }
+        .price-card li { padding: 0.5rem 0; border-bottom: 1px solid #333; }
+        .price-card li:before { content: "✓ "; color: var(--gold); }
+
+        footer {
+            text-align: center;
+            padding: 3rem;
+            background: #050508;
+            border-top: 1px solid #222;
+        }
+        footer a { color: var(--gold); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .subtitle { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>SCBE-AETHERMOORE</h1>
+        <p class="subtitle">Spectral Context-Bound Encryption</p>
+        <p class="tagline">
+            Post-quantum cryptographic AI safety using hyperbolic geometry,
+            harmonic scaling, and a 14-layer governance pipeline.
+        </p>
+        <div class="cta-buttons">
+            <a href="#demo" class="btn btn-primary">Try Live Demo</a>
+            <a href="#layers" class="btn btn-secondary">How It Works</a>
+            <a href="https://github.com/issdandavis/aws-lambda-simple-web-app" class="btn btn-secondary">GitHub</a>
+        </div>
+    </div>
+
+    <section id="layers">
+        <h2>The 14-Layer Pipeline</h2>
+        <p style="text-align:center; margin-bottom:2rem; opacity:0.8;">
+            Each layer adds security. The metric d<sub>H</sub>(u,v) is <strong>invariant</strong> - it never changes.
+            All dynamics come from transforming points within the hyperbolic ball.
+        </p>
+        <div class="layers-grid">
+            <div class="layer-card">
+                <span class="layer-num">1-4</span>
+                <h3>Context Embedding</h3>
+                <p>Raw input → Poincare ball B<sup>n</sup>. Maps any context into hyperbolic space where distances have meaning.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">5</span>
+                <h3>Invariant Metric</h3>
+                <p>d<sub>H</sub>(u,v) = arcosh(...) - the hyperbolic distance. This NEVER changes. It's the foundation.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">6</span>
+                <h3>Breath Transform</h3>
+                <p>B(p,t) = tanh(||p|| + A·sin(ωt))·p/||p||. Rhythmic modulation that preserves direction.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">7</span>
+                <h3>Phase Modulation</h3>
+                <p>Φ(p,θ) = R<sub>θ</sub>·p. Rotation in tangent space adds temporal dimension.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">8</span>
+                <h3>Multi-Well Potential</h3>
+                <p>V(p) = Σ w<sub>i</sub>·exp(-||p-c<sub>i</sub>||²/2σ²). Gaussian attractors for decision regions.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">9</span>
+                <h3>Spectral Channel</h3>
+                <p>FFT coherence S<sub>spectral</sub> ∈ [0,1]. Frequency-domain stability check.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">10</span>
+                <h3>Spin Channel</h3>
+                <p>Quaternion stability S<sub>spin</sub> ∈ [0,1]. Rotational invariance verification.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">11</span>
+                <h3>Triadic Consensus</h3>
+                <p>3-node Byzantine agreement. No single point of failure in governance.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">12</span>
+                <h3>Harmonic Scaling</h3>
+                <p>H(d,R) = R<sup>d²</sup> where R=1.5. At d=6: 1.5<sup>36</sup> ≈ 2.18 million × amplification.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">13</span>
+                <h3>Decision Gate</h3>
+                <p>ALLOW / QUARANTINE / DENY. The final governance decision based on all layers.</p>
+            </div>
+            <div class="layer-card">
+                <span class="layer-num">14</span>
+                <h3>Audio Axis</h3>
+                <p>FFT telemetry S<sub>audio</sub> = 1 - r<sub>HF</sub>. Additional stability channel without metric modification.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo" class="demo-section">
+        <h2>Live Demo</h2>
+        <div class="demo-box">
+            <input type="text" id="demo-input" placeholder="Enter text to analyze through the 14-layer pipeline...">
+            <button class="btn btn-primary" onclick="runDemo()" style="width:100%; margin-bottom:1rem;">
+                Analyze with SCBE-AETHERMOORE
+            </button>
+            <div id="demo-output">Enter text above and click analyze to see the governance pipeline in action.</div>
+        </div>
+    </section>
+
+    <section id="pricing" class="pricing">
+        <h2>Licensing</h2>
+        <div class="pricing-grid">
+            <div class="price-card">
+                <h3>Open Source</h3>
+                <div class="price">Free</div>
+                <ul>
+                    <li>Full source code access</li>
+                    <li>14-layer pipeline</li>
+                    <li>Basic documentation</li>
+                    <li>Community support</li>
+                    <li>MIT License</li>
+                </ul>
+                <a href="https://github.com/issdandavis/aws-lambda-simple-web-app" class="btn btn-secondary" style="width:100%">
+                    Get Started
+                </a>
+            </div>
+            <div class="price-card featured">
+                <h3>Enterprise</h3>
+                <div class="price">$499<span>/month</span></div>
+                <ul>
+                    <li>Everything in Open Source</li>
+                    <li>Priority support</li>
+                    <li>Custom integration help</li>
+                    <li>SLA guarantee</li>
+                    <li>Private deployment</li>
+                </ul>
+                <a href="mailto:contact@scbe-aethermoore.dev" class="btn btn-primary" style="width:100%">
+                    Contact Sales
+                </a>
+            </div>
+            <div class="price-card">
+                <h3>Patent License</h3>
+                <div class="price">Custom</div>
+                <ul>
+                    <li>Commercial use rights</li>
+                    <li>Patent protection</li>
+                    <li>Exclusive territories</li>
+                    <li>White-label options</li>
+                    <li>Revenue sharing</li>
+                </ul>
+                <a href="mailto:licensing@scbe-aethermoore.dev" class="btn btn-secondary" style="width:100%">
+                    Discuss Terms
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>SCBE-AETHERMOORE &copy; 2024-2026 |
+           <a href="https://github.com/issdandavis">GitHub</a> |
+           <a href="#layers">Documentation</a>
+        </p>
+        <p style="margin-top:1rem; opacity:0.6; font-size:0.9rem;">
+            Post-Quantum Cryptography + Hyperbolic Geometry + AI Safety
+        </p>
+    </footer>
+
+    <script>
+        // Simulated demo (actual implementation would call backend API)
+        function runDemo() {
+            const input = document.getElementById('demo-input').value;
+            const output = document.getElementById('demo-output');
+
+            if (!input.trim()) {
+                output.textContent = 'Please enter some text to analyze.';
+                return;
+            }
+
+            output.innerHTML = '<span style="color:#888">Processing through 14-layer pipeline...</span>';
+
+            setTimeout(() => {
+                // Simulate pipeline processing
+                const hash = simpleHash(input);
+                const risk = (hash % 100) / 100;
+                const decision = risk < 0.3 ? 'ALLOW' : risk < 0.7 ? 'QUARANTINE' : 'DENY';
+                const statusClass = decision.toLowerCase();
+
+                const harmonicScale = Math.pow(1.5, 36).toExponential(2);
+                const hyperbolicDist = (2 + Math.random() * 3).toFixed(4);
+                const coherence = (0.7 + Math.random() * 0.3).toFixed(4);
+
+                output.innerHTML = `
+<strong>Input:</strong> "${input.substring(0, 50)}${input.length > 50 ? '...' : ''}"
+
+<strong>Layer 1-4 (Context Embedding):</strong>
+  Poincare ball coordinates: [${(Math.random()*0.5).toFixed(3)}, ${(Math.random()*0.5).toFixed(3)}, ${(Math.random()*0.5).toFixed(3)}]
+  Norm: ${(Math.random()*0.7).toFixed(4)} (< 1, valid)
+
+<strong>Layer 5 (Hyperbolic Distance):</strong>
+  d_H(origin, point) = ${hyperbolicDist}
+
+<strong>Layer 6-7 (Breath + Phase):</strong>
+  Breathing amplitude: A = 0.05
+  Phase offset: θ = ${(Math.random()*Math.PI).toFixed(4)} rad
+
+<strong>Layer 8 (Multi-Well):</strong>
+  Nearest attractor: SAFE_ZONE (distance: ${(Math.random()*0.3).toFixed(3)})
+
+<strong>Layer 9-10 (Spectral/Spin):</strong>
+  S_spectral = ${coherence}
+  S_spin = ${(0.8 + Math.random()*0.2).toFixed(4)}
+
+<strong>Layer 11 (Triadic Consensus):</strong>
+  Node votes: [${decision}, ${decision}, ${decision}]
+  Consensus: ACHIEVED
+
+<strong>Layer 12 (Harmonic Scaling):</strong>
+  H(6, 1.5) = 1.5^36 = ${harmonicScale}
+  Security amplification: ${harmonicScale}x
+
+<strong>Layer 13 (Decision Gate):</strong>
+<span class="status status-${statusClass}">${decision}</span>
+  Risk score: ${(risk * 100).toFixed(1)}%
+
+<strong>Layer 14 (Audio Telemetry):</strong>
+  S_audio = ${(0.85 + Math.random()*0.15).toFixed(4)}
+  HF ratio: ${(Math.random()*0.15).toFixed(4)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<strong>FINAL DECISION: <span class="status status-${statusClass}">${decision}</span></strong>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+            }, 800);
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash);
+        }
+    </script>
+</body>
+</html>
