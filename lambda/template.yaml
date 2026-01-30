@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SCBE-AETHERMOORE Governance Pipeline Lambda
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  SCBEFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: scbe-governance-pipeline
+      CodeUri: .
+      Handler: scbe_handler.lambda_handler
+      Runtime: python3.11
+      Architectures:
+        - x86_64
+      Events:
+        AnalyzePost:
+          Type: Api
+          Properties:
+            Path: /analyze
+            Method: post
+        AnalyzeGet:
+          Type: Api
+          Properties:
+            Path: /analyze
+            Method: get
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+
+Outputs:
+  SCBEApi:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/analyze"
+  SCBEFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt SCBEFunction.Arn
