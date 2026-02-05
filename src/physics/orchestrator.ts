@@ -359,7 +359,7 @@ export class SimulationOrchestrator {
       dt = 1e-9                  // s
     } = params;
 
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
     const eV = 1.602e-19;
     const mp = 1.673e-27;  // proton mass
 
@@ -638,7 +638,7 @@ export class SimulationOrchestrator {
       pumpPower = 10            // W
     } = params;
 
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
 
     // Cavity parameters
     const roundTripTime = 2 * cavityLength / c;
@@ -681,7 +681,7 @@ export class SimulationOrchestrator {
       timeSeries: [],
       summary: {
         thresholdGain,
-        isAboveThreshold: smallSignalGain > thresholdGain,
+        isAboveThreshold: smallSignalGain > thresholdGain ? 1 : 0,
         outputPower,
         beamQualityM2: M2,
         divergenceRad: divergence
@@ -906,28 +906,28 @@ export class SimulationOrchestrator {
         switch (module) {
           case 'quantum':
             if (config.parameters.photonWavelength) {
-              data.photon = QuantumMechanics.photonProperties(config.parameters.photonWavelength);
+              data.photon = QuantumMechanics.calculatePhotonProperties(config.parameters.photonWavelength);
             }
             if (config.parameters.hydrogenN) {
-              data.hydrogen = QuantumMechanics.hydrogenAtom(config.parameters.hydrogenN);
+              data.hydrogen = QuantumMechanics.hydrogenEnergyLevel(config.parameters.hydrogenN);
             }
             break;
 
           case 'particles':
             if (config.parameters.particles) {
-              data.nBody = ParticleDynamics.nBodySimulation(
+              // Single n-body step with provided particles
+              data.nBody = ParticleDynamics.nBodyStep(
                 config.parameters.particles,
-                config.parameters.dt || 0.001,
-                config.parameters.duration || 10
+                config.parameters.dt || 0.001
               );
             }
             break;
 
           case 'waves':
-            if (config.parameters.frequency) {
-              data.standing = WaveSimulation.standingWave(
+            if (config.parameters.wavelength) {
+              data.standing = WaveSimulation.standingWaves(
                 config.parameters.amplitude || 1,
-                config.parameters.wavelength || 1,
+                config.parameters.wavelength,
                 config.parameters.length || 2,
                 0
               );
@@ -941,18 +941,20 @@ export class SimulationOrchestrator {
             break;
 
           case 'fluids':
-            if (config.parameters.fluidVelocity) {
+            if (config.parameters.flowRate) {
               data.flow = FluidDynamics.pipeFlow(
-                config.parameters.fluidVelocity,
                 config.parameters.pipeDiameter || 0.1,
-                { density: 1000, viscosity: 0.001, specificHeat: 4186, thermalConductivity: 0.6 }
+                config.parameters.pipeLength || 10,
+                config.parameters.flowRate,
+                config.parameters.density || 1000,
+                config.parameters.kinematicViscosity || 1e-6
               );
             }
             break;
 
           case 'electromagnetism':
             if (config.parameters.charge) {
-              data.field = Electromagnetism.electricField(
+              data.field = Electromagnetism.pointChargeField(
                 config.parameters.charge,
                 config.parameters.position || { x: 1, y: 0, z: 0 }
               );
@@ -960,12 +962,12 @@ export class SimulationOrchestrator {
             break;
 
           case 'thermodynamics':
-            if (config.parameters.temperatures) {
-              data.conduction = Thermodynamics.conductionSteadyState(
-                config.parameters.temperatures,
-                config.parameters.thermalConductivity || 1,
+            if (config.parameters.thermalConductivity) {
+              data.conduction = Thermodynamics.conduction(
+                config.parameters.thermalConductivity,
                 config.parameters.area || 1,
-                config.parameters.thickness || 0.1
+                config.parameters.thickness || 0.1,
+                config.parameters.temperatureDifference || 100
               );
             }
             break;

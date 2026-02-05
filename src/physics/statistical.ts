@@ -64,10 +64,10 @@ export interface FluctuationResult {
   susceptibility: number;
 }
 
-const kB = PhysicalConstants.get('boltzmann_constant').value;
-const h = PhysicalConstants.get('planck_constant').value;
-const hbar = PhysicalConstants.get('reduced_planck_constant').value;
-const NA = PhysicalConstants.get('avogadro_constant').value;
+const kB = PhysicalConstants.kB;
+const h = PhysicalConstants.h;
+const hbar = PhysicalConstants.hbar;
+const NA = PhysicalConstants.NA;
 
 export class StatisticalMechanics {
   /**
@@ -627,7 +627,7 @@ export class StatisticalMechanics {
     moleFractions: number[],
     totalMoles: number
   ): number {
-    const R = PhysicalConstants.get('molar_gas_constant').value;
+    const R = PhysicalConstants.R;
 
     let entropy = 0;
     for (const x of moleFractions) {
@@ -711,7 +711,7 @@ export class StatisticalMechanics {
     compressibilityFactor: number;
     criticalPoint: { Tc: number; Pc: number; Vc: number };
   } {
-    const R = PhysicalConstants.get('molar_gas_constant').value;
+    const R = PhysicalConstants.R;
 
     // p = RT/(Vm - b) - a/Vm²
     const pressure = R * temperature / (molarVolume - b) - a / (molarVolume * molarVolume);
@@ -743,7 +743,7 @@ export class StatisticalMechanics {
     peakFrequency: number;
     totalPower: number;          // W/m² (Stefan-Boltzmann)
   } {
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
 
     // Peak frequency (Wien's law)
     const peakFrequency = 2.821 * kB * temperature / h;

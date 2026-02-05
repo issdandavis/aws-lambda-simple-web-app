@@ -241,7 +241,7 @@ export class NuclearPhysics {
     reactants: { Z: number; A: number; mass?: number }[],
     products: { Z: number; A: number; mass?: number }[]
   ): number {
-    const c2 = PhysicalConstants.get('speed_of_light').value ** 2;
+    const c2 = PhysicalConstants.c ** 2;
 
     // Get masses (use SEMF if not provided)
     const getMass = (particle: { Z: number; A: number; mass?: number }): number => {
@@ -295,7 +295,7 @@ export class NuclearPhysics {
     atomicMass: number,    // u
     halfLife: number       // s
   ): number {
-    const NA = PhysicalConstants.get('avogadro_constant').value;
+    const NA = PhysicalConstants.NA;
     const numAtoms = massKg * NA / (atomicMass * 1e-3);
     const lambda = Math.LN2 / halfLife;
     return lambda * numAtoms;  // Bq
@@ -350,8 +350,8 @@ export class NuclearPhysics {
     photonEnergyEV: number,
     scatteringAngle: number    // radians
   ): ComptonResult {
-    const c = PhysicalConstants.get('speed_of_light').value;
-    const h = PhysicalConstants.get('planck_constant').value;
+    const c = PhysicalConstants.c;
+    const h = PhysicalConstants.h;
     const me = PARTICLES.electron.mass;
     const re = 2.8179403262e-15;  // Classical electron radius
 
@@ -418,7 +418,7 @@ export class NuclearPhysics {
     crossSection: number;
   } {
     const me = PARTICLES.electron.mass;
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
     const mec2 = me * c * c / eV_to_J;  // 511 keV
 
     const threshold = 2 * mec2;  // 1.022 MeV
@@ -468,7 +468,7 @@ export class NuclearPhysics {
     isAtRest: boolean;
   } {
     const me = PARTICLES.electron.mass;
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
     const mec2 = me * c * c / eV_to_J;
 
     const totalEnergy = 2 * mec2 + electronKE + positronKE;
@@ -540,7 +540,7 @@ export class NuclearPhysics {
 
     // Mean free path (assume typical density)
     const density = 8000;  // kg/m³
-    const NA = PhysicalConstants.get('avogadro_constant').value;
+    const NA = PhysicalConstants.NA;
     const n = density * NA / (targetA * 1e-3);  // Number density
     const meanFreePath = 1 / (n * total * barn_to_m2);
 
@@ -568,10 +568,10 @@ export class NuclearPhysics {
     range: number;                     // cm
     energyLoss: number;               // MeV/cm
   } {
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
     const me = PARTICLES.electron.mass;
     const re = 2.8179403262e-15;
-    const NA = PhysicalConstants.get('avogadro_constant').value;
+    const NA = PhysicalConstants.NA;
 
     // Particle velocity
     const E0 = particleMass * c * c;
@@ -749,7 +749,7 @@ export class NuclearPhysics {
     product1Momentum: number; // kg m/s
     qValue: number;           // J
   } {
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
     const c2 = c * c;
 
     const M = parentMass;
@@ -780,7 +780,7 @@ export class NuclearPhysics {
   static invariantMass(
     particles: { energy: number; momentum: { x: number; y: number; z: number } }[]
   ): number {
-    const c = PhysicalConstants.get('speed_of_light').value;
+    const c = PhysicalConstants.c;
 
     let totalE = 0;
     let totalPx = 0;

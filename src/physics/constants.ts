@@ -75,4 +75,49 @@ export const ConstantDetails: Record<string, ConstantWithUncertainty> = {
   NA: { value: 6.02214076e23, uncertainty: 0, unit: '1/mol', description: 'Avogadro constant' },
   alpha: { value: 7.2973525693e-3, uncertainty: 1.1e-12, unit: '', description: 'Fine-structure constant' },
   a0: { value: 5.29177210903e-11, uncertainty: 8.0e-21, unit: 'm', description: 'Bohr radius' },
+  gravitational_constant: { value: 6.67430e-11, uncertainty: 1.5e-15, unit: 'm³/(kg·s²)', description: 'Gravitational constant' },
+  speed_of_light: { value: 299792458, uncertainty: 0, unit: 'm/s', description: 'Speed of light in vacuum' },
+  avogadro_constant: { value: 6.02214076e23, uncertainty: 0, unit: '1/mol', description: 'Avogadro constant' },
+  planck_constant: { value: 6.62607015e-34, uncertainty: 0, unit: 'J·s', description: 'Planck constant' },
+  reduced_planck_constant: { value: 1.054571817e-34, uncertainty: 0, unit: 'J·s', description: 'Reduced Planck constant' },
+  boltzmann_constant: { value: 1.380649e-23, uncertainty: 0, unit: 'J/K', description: 'Boltzmann constant' },
+  molar_gas_constant: { value: 8.314462618, uncertainty: 0, unit: 'J/(mol·K)', description: 'Molar gas constant' },
 };
+
+/**
+ * Helper to get constant by name with details
+ */
+export const PhysicalConstantsHelper = {
+  get(name: string): ConstantWithUncertainty {
+    const details = ConstantDetails[name];
+    if (details) return details;
+
+    // Try mapping common names to short names
+    const nameMap: Record<string, string> = {
+      gravitational_constant: 'G',
+      speed_of_light: 'c',
+      avogadro_constant: 'NA',
+      planck_constant: 'h',
+      reduced_planck_constant: 'hbar',
+      boltzmann_constant: 'kB',
+      molar_gas_constant: 'R',
+    };
+
+    const shortName = nameMap[name];
+    if (shortName && ConstantDetails[shortName]) {
+      return ConstantDetails[shortName];
+    }
+
+    // Fall back to direct value from PhysicalConstants
+    const value = (PhysicalConstants as Record<string, number>)[name] ||
+                  (PhysicalConstants as Record<string, number>)[shortName];
+    if (value !== undefined) {
+      return { value, uncertainty: 0, unit: '', description: name };
+    }
+
+    throw new Error(`Unknown constant: ${name}`);
+  }
+};
+
+// Re-export get function attached to PhysicalConstants for backwards compatibility
+(PhysicalConstants as any).get = PhysicalConstantsHelper.get;

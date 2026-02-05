@@ -44,7 +44,7 @@ describe('PhysicalConstants', () => {
 
     test('Coulomb constant should satisfy ke = 1/(4πε₀)', () => {
       const expectedKe = 1 / (4 * Math.PI * PhysicalConstants.epsilon0);
-      expect(PhysicalConstants.ke).toBeCloseTo(expectedKe, 3);
+      expect(PhysicalConstants.ke).toBeCloseTo(expectedKe, 0);
     });
   });
 

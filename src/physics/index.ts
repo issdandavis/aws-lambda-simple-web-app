@@ -28,7 +28,7 @@ export { Electromagnetism, ElectricFieldResult, MagneticFieldResult, CircuitResu
 export { Thermodynamics, ThermalProperties, HeatTransferResult, ConvectionResult, RadiationResult, ThermodynamicState, CycleResult, HeatExchangerResult } from './thermodynamics';
 
 // Numerical methods
-export { NumericalMethods, ODEResult, RootResult, IntegrationResult, InterpolationResult, LinearSystemResult, SplineCoefficients } from './numerical';
+export { NumericalMethods, ODEResult, RootResult, IntegrationResult, InterpolationResult, OptimizationResult } from './numerical';
 
 // Optimization
 export { ParticleSwarmOptimizer, PhysicsOptimization, Particle as SwarmParticle, PSOConfig, PSOResult, MOPSOResult, ConstrainedResult } from './optimizer';

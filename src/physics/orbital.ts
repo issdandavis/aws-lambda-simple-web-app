@@ -553,7 +553,7 @@ export class OrbitalMechanics {
     duration: number,
     outputInterval: number = dt
   ): NBodyState[] {
-    const G = PhysicalConstants.get('gravitational_constant').value;
+    const G = PhysicalConstants.G;
     const n = bodies.length;
     const states: NBodyState[] = [];
 
@@ -637,7 +637,7 @@ export class OrbitalMechanics {
       includeThirdBody
     } = options;
 
-    const mu = centralBody.mu || PhysicalConstants.get('gravitational_constant').value * centralBody.mass;
+    const mu = centralBody.mu || PhysicalConstants.G * centralBody.mass;
     const Re = centralBody.radius;
     const J2 = centralBody.J2 || 0;
 
@@ -704,7 +704,7 @@ export class OrbitalMechanics {
         // Third body perturbation
         if (includeThirdBody) {
           const mu3 = includeThirdBody.mu ||
-                      PhysicalConstants.get('gravitational_constant').value * includeThirdBody.mass;
+                      PhysicalConstants.G * includeThirdBody.mass;
 
           // Vector from spacecraft to third body
           const r3b: Vector3D = {
