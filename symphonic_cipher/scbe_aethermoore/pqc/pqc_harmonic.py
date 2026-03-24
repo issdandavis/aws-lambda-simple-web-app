@@ -28,6 +28,7 @@ from enum import Enum
 # Import AETHERMOORE constants
 from ..constants import (
     PHI, R_FIFTH, PHI_AETHER, LAMBDA_ISSAC, OMEGA_SPIRAL,
+    PHI, R_FIFTH, PHI_AETHER, LAMBDA_ISAAC, OMEGA_SPIRAL,
     DEFAULT_R, DEFAULT_D_MAX, DEFAULT_BASE_BITS,
     harmonic_scale, security_bits, security_level,
     harmonic_distance,
@@ -64,6 +65,22 @@ HARMONIC_SCALE_TABLE = {
     4: 656.8408966064,      # 1.5^16
     5: 25251.1681632996,    # 1.5^25
     6: 2184164.4058227539,  # 1.5^36
+    D1_BASIC = 1      # R^1 = 1.5x multiplier
+    D2_STANDARD = 2   # R^4 = 5.0625x multiplier
+    D3_ELEVATED = 3   # R^9 = 38.44x multiplier
+    D4_HIGH = 4       # R^16 = 656.84x multiplier
+    D5_CRITICAL = 5   # R^25 = 25,629x multiplier
+    D6_MAXIMUM = 6    # R^36 = 2,184,164x multiplier
+
+
+# Harmonic scaling reference table
+HARMONIC_SCALE_TABLE = {
+    1: 1.5,
+    2: 5.0625,
+    3: 38.443359375,
+    4: 656.840896606,
+    5: 25629.1020737,
+    6: 2184164.40625,
 }
 
 # Base security bits for common algorithms
@@ -219,6 +236,7 @@ def fast_harmonic_key(
     aether_bytes = (
         int(PHI_AETHER * 1e15).to_bytes(8, 'big') +
         int(LAMBDA_ISSAC * 1e15).to_bytes(8, 'big') +
+        int(LAMBDA_ISAAC * 1e15).to_bytes(8, 'big') +
         int(OMEGA_SPIRAL * 1e15).to_bytes(8, 'big')
     )
 
@@ -265,6 +283,19 @@ class HarmonicPQCSession:
             6: "MAXIMUM (6D Harmonic)",
         }
         return level_names.get(self.dimension, f"DIMENSION-{self.dimension}")
+        """Get human-readable security level name."""
+        if self.effective_security_bits >= 400:
+            return "MAXIMUM (6D Harmonic)"
+        elif self.effective_security_bits >= 300:
+            return "CRITICAL (5D Harmonic)"
+        elif self.effective_security_bits >= 250:
+            return "HIGH (4D Harmonic)"
+        elif self.effective_security_bits >= 220:
+            return "ELEVATED (3D Harmonic)"
+        elif self.effective_security_bits >= 200:
+            return "STANDARD (2D Harmonic)"
+        else:
+            return "BASIC (1D Harmonic)"
 
 
 def create_harmonic_pqc_session(

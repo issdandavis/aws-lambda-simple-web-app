@@ -1,0 +1,35 @@
+{
+  "name": "@spiralverse/scbe-aethermoore",
+  "version": "2.0.0",
+  "description": "SCBE-AETHERMOORE Unified Cryptographic Framework SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": "Isaac Davis",
+  "license": "MIT",
+  "keywords": [
+    "cryptography",
+    "scbe",
+    "aethermoore",
+    "harmonic",
+    "spiralverse",
+    "chaos",
+    "post-quantum"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spiralverse/scbe-aethermoore"
+  }
+}
