@@ -1,4 +1,23 @@
 """
+PQC (Post-Quantum Cryptography) Module for AETHERMOORE
+
+Provides post-quantum cryptographic primitives integrated with
+AETHERMOORE harmonic scaling for enhanced security.
+
+Components:
+- pqc_core: Kyber768 and Dilithium3 primitives
+- pqc_harmonic: Harmonic-enhanced PQC operations
+"""
+
+from .pqc_core import (
+    Kyber768,
+    KyberKeyPair,
+    EncapsulationResult,
+    Dilithium3,
+    DilithiumKeyPair,
+    derive_hybrid_key,
+)
+
 PQC Module - Post-Quantum Cryptography for SCBE-AETHERMOORE
 
 Provides quantum-resistant cryptographic primitives using liboqs:
@@ -113,6 +132,17 @@ from .pqc_harmonic import (
     analyze_harmonic_security,
     print_security_table,
     HarmonicKyberOrchestrator,
+)
+
+__all__ = [
+    # Core PQC
+    "Kyber768",
+    "KyberKeyPair",
+    "EncapsulationResult",
+    "Dilithium3",
+    "DilithiumKeyPair",
+    "derive_hybrid_key",
+    # Harmonic PQC
     HARMONIC_SCALE_TABLE,
     BASE_SECURITY_BITS,
 )
@@ -215,6 +245,7 @@ __all__ = [
     "analyze_harmonic_security",
     "print_security_table",
     "HarmonicKyberOrchestrator",
+]
     "HARMONIC_SCALE_TABLE",
     "BASE_SECURITY_BITS",
 ]

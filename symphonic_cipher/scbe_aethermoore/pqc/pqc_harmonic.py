@@ -27,6 +27,7 @@ from enum import Enum
 
 # Import AETHERMOORE constants
 from ..constants import (
+    PHI, R_FIFTH, PHI_AETHER, LAMBDA_ISSAC, OMEGA_SPIRAL,
     PHI, R_FIFTH, PHI_AETHER, LAMBDA_ISAAC, OMEGA_SPIRAL,
     DEFAULT_R, DEFAULT_D_MAX, DEFAULT_BASE_BITS,
     harmonic_scale, security_bits, security_level,
@@ -48,6 +49,22 @@ from .pqc_core import (
 # Security dimension levels
 class SecurityDimension(Enum):
     """Security dimension levels for harmonic enhancement."""
+    D1_BASIC = 1      # R^1 = 1.5x multiplier, +0.58 bits
+    D2_STANDARD = 2   # R^4 = 5.06x multiplier, +2.34 bits
+    D3_ELEVATED = 3   # R^9 = 38.44x multiplier, +5.26 bits
+    D4_HIGH = 4       # R^16 = 656.84x multiplier, +9.36 bits
+    D5_CRITICAL = 5   # R^25 = 25,251x multiplier, +14.62 bits
+    D6_MAXIMUM = 6    # R^36 = 2,184,164x multiplier, +21.06 bits
+
+
+# Harmonic scaling reference table (H(d, R) = R^(d²) for R=1.5)
+HARMONIC_SCALE_TABLE = {
+    1: 1.5,                 # 1.5^1
+    2: 5.0625,              # 1.5^4
+    3: 38.443359375,        # 1.5^9
+    4: 656.8408966064,      # 1.5^16
+    5: 25251.1681632996,    # 1.5^25
+    6: 2184164.4058227539,  # 1.5^36
     D1_BASIC = 1      # R^1 = 1.5x multiplier
     D2_STANDARD = 2   # R^4 = 5.0625x multiplier
     D3_ELEVATED = 3   # R^9 = 38.44x multiplier
@@ -218,6 +235,7 @@ def fast_harmonic_key(
     # Include AETHERMOORE constants in derivation
     aether_bytes = (
         int(PHI_AETHER * 1e15).to_bytes(8, 'big') +
+        int(LAMBDA_ISSAC * 1e15).to_bytes(8, 'big') +
         int(LAMBDA_ISAAC * 1e15).to_bytes(8, 'big') +
         int(OMEGA_SPIRAL * 1e15).to_bytes(8, 'big')
     )
@@ -255,6 +273,16 @@ class HarmonicPQCSession:
     vector_key: Optional[Tuple[float, ...]] = None
 
     def get_security_level_name(self) -> str:
+        """Get human-readable security level name based on dimension."""
+        level_names = {
+            1: "BASIC (1D Harmonic)",
+            2: "STANDARD (2D Harmonic)",
+            3: "ELEVATED (3D Harmonic)",
+            4: "HIGH (4D Harmonic)",
+            5: "CRITICAL (5D Harmonic)",
+            6: "MAXIMUM (6D Harmonic)",
+        }
+        return level_names.get(self.dimension, f"DIMENSION-{self.dimension}")
         """Get human-readable security level name."""
         if self.effective_security_bits >= 400:
             return "MAXIMUM (6D Harmonic)"
